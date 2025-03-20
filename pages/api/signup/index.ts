@@ -1,3 +1,4 @@
+import { supabaseAdmin } from "@/utils/supabase/admin";
 import createClient from "@/utils/supabase/api";
 import { Session, User } from "@supabase/supabase-js";
 import type { NextApiRequest, NextApiResponse } from "next";
@@ -32,43 +33,42 @@ export default async function handler(
         },
       },
     });
+
     if (error) {
       console.error("Error:", error);
       return res.status(400).json({ error: error.message || "Sign up failed" });
-    } else {
-      console.log("response: ", data);
-
-      // Insert user data into Supabase database
-      const signUpData = {
-        email: request.email,
-        username: request.username,
-        fullname: request.fullname,
-        profile_pic_url: '', // You can update this later
-        bio: '', // You can update this later
-        // Other user data
-      };
-      const { data: userData, error: userError } = await supabase
-        .from("users")
-        .insert([
-          {
-            user_id: data.user?.id, // Assuming user ID is provided by Supabase
-            ...signUpData,
-          },
-        ]);
-
-      if (userError) {
-        console.error("Error inserting user data:", userError);
-        return res
-          .status(500)
-          .json({ error: "Error inserting user data into the database" });
-      }
-
-      // You can optionally insert default links or headers here for the user
-
-      return res.status(200).json({ user: data.user, session: data.session });
     }
-  } catch (error) {
+
+    // Insert user data using admin client to bypass RLS
+    const signUpData = {
+      user_id: data.user?.id,
+      email: request.email,
+      username: request.username.toLowerCase(),
+      fullname: request.fullname,
+      profile_pic_url: '', 
+      bio: '',
+      category: request.category,
+      subcategory: request.subcategory,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    const { error: userError } = await supabaseAdmin
+      .from("users")
+      .insert([signUpData])
+      .select();
+
+    if (userError) {
+      console.error("Error inserting user data:", userError);
+      await supabaseAdmin.auth.admin.deleteUser(data.user?.id!);
+      return res
+        .status(500)
+        .json({ error: `Error inserting user data: ${userError.message}` });
+    }
+
+    return res.status(200).json({ user: data.user, session: data.session });
+  } catch (error: any) {
     console.error("Error:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: error.message || "Internal server error" });
   }
 }
