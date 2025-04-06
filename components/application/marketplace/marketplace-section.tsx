@@ -63,6 +63,15 @@ export const MarketplaceSection: React.FC<MarketplaceSectionProps> = ({ userID }
         const fileExt = newItem.image.name.split('.').pop();
         const fileName = `${userID}/${Date.now()}.${fileExt}`;
         
+        // First check if the bucket exists
+        const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
+        if (bucketError) throw bucketError;
+
+        const bucketExists = buckets.some(bucket => bucket.name === 'marketplace');
+        if (!bucketExists) {
+          throw new Error('Marketplace bucket not found. Please create it in your Supabase dashboard.');
+        }
+
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from("marketplace")
           .upload(fileName, newItem.image, {
@@ -70,7 +79,10 @@ export const MarketplaceSection: React.FC<MarketplaceSectionProps> = ({ userID }
             upsert: true
           });
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          throw uploadError;
+        }
 
         const { data: { publicUrl } } = supabase.storage
           .from("marketplace")
@@ -108,8 +120,10 @@ export const MarketplaceSection: React.FC<MarketplaceSectionProps> = ({ userID }
       });
       onOpenChange();
       fetchItems();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating item:", error);
+      // Show error message to user
+      alert(error.message || "Failed to create item. Please try again.");
     }
   };
 

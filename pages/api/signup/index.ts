@@ -59,7 +59,6 @@ export default async function handler(
           subcategory: request.subcategory,
           profile_pic_url: '',
           bio: '',
-          role: 'user' // Default role for new users
         },
       ]);
 
