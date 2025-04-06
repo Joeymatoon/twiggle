@@ -39,7 +39,7 @@
     "tailwind-variants": "^0.1.18",
     "tailwindcss": "^3.4.0",
     "typescript": "5.0.4",
-    "url-metadata": "^4.1.0",
+    "url-metadata": "^5.0.5",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
