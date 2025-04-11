@@ -47,7 +47,6 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
   const handleProfileTitleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
     setProfileTitle(newTitle);
-    dispatch(updateUserInfo({ profileTitle: newTitle }));
     
     try {
       const { error } = await supabase
@@ -56,15 +55,18 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
         .eq("user_id", userID);
       
       if (error) throw error;
-    } catch (error) {
+      
+      // Dispatch update to Redux store
+      dispatch(updateUserInfo({ profileTitle: newTitle }));
+    } catch (error: any) {
       console.error("Error updating profile title:", error);
+      alert(error.message || "Failed to update profile title. Please try again.");
     }
   };
 
   const handleBioChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const newBio = e.target.value;
     setBio(newBio);
-    dispatch(updateUserInfo({ bio: newBio }));
     
     try {
       const { error } = await supabase
@@ -73,8 +75,12 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
         .eq("user_id", userID);
       
       if (error) throw error;
-    } catch (error) {
+      
+      // Dispatch update to Redux store
+      dispatch(updateUserInfo({ bio: newBio }));
+    } catch (error: any) {
       console.error("Error updating bio:", error);
+      alert(error.message || "Failed to update bio. Please try again.");
     }
   };
 
@@ -83,6 +89,25 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
     if (!file) return;
 
     try {
+      // Check file type
+      if (!file.type.match(/image\/(jpeg|png|jpg)/)) {
+        throw new Error('Please upload a valid image file (JPEG, PNG)');
+      }
+
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error('Image size should be less than 5MB');
+      }
+
+      // First check if the bucket exists
+      const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
+      if (bucketError) throw bucketError;
+
+      const bucketExists = buckets.some(bucket => bucket.name === 'avatars');
+      if (!bucketExists) {
+        throw new Error('Avatars bucket not found. Please create it in your Supabase dashboard.');
+      }
+
       // Delete existing avatar if it exists
       if (avatar) {
         const { error: deleteError } = await supabase.storage
@@ -103,7 +128,10 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
           upsert: true
         });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw uploadError;
+      }
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
@@ -120,8 +148,12 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
 
       setAvatarUrl(publicUrl);
       setAvatar(`avatars/${fileName}`);
-    } catch (error) {
+      
+      // Dispatch update to Redux store
+      dispatch(updateUserInfo({ profilePic: publicUrl }));
+    } catch (error: any) {
       console.error("Error updating avatar:", error);
+      alert(error.message || "Failed to update avatar. Please try again.");
     }
   };
 
@@ -152,10 +184,10 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
   return (
     <div className="flex flex-col w-full gap-6">
       <div className="flex w-full justify-between items-center gap-3">
-        <label htmlFor="avatar-upload" className="cursor-pointer">
+        <div className="flex flex-col items-center gap-2">
           <Avatar
             name={profileTitle[0]?.toUpperCase() || "@"}
-            className="w-20 h-20 text-3xl text-white bg-black mb-2"
+            className="w-24 h-24 text-3xl text-white bg-black mb-2"
             src={avatarUrl}
           />
           <input
@@ -165,7 +197,7 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
             onChange={handleAvatarChange}
             className="hidden"
           />
-        </label>
+        </div>
         <div className="flex flex-col w-full gap-3">
           <Button
             color="secondary"
@@ -176,7 +208,8 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
               if (fileInput) fileInput.click();
             }}
           >
-            Pick an image
+            <i className="ri-upload-2-line mr-2"></i>
+            Upload New Photo
           </Button>
           <Button
             color="secondary"
@@ -185,7 +218,8 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
             radius="full"
             onPress={handleRemoveAvatar}
           >
-            Remove
+            <i className="ri-delete-bin-line mr-2"></i>
+            Remove Photo
           </Button>
         </div>
       </div>
@@ -195,12 +229,22 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
           label="Profile Title"
           value={profileTitle}
           onChange={handleProfileTitleChange}
+          variant="bordered"
+          classNames={{
+            input: "text-lg",
+            label: "text-default-500"
+          }}
         />
         <Textarea 
           label="Bio" 
           value={bio} 
           onChange={handleBioChange}
           minRows={3}
+          variant="bordered"
+          classNames={{
+            input: "text-lg",
+            label: "text-default-500"
+          }}
         />
       </div>
     </div>

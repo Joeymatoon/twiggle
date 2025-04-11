@@ -77,30 +77,31 @@ export default function AdminPage() {
         const { data, error } = await supabase
           .from("headers")
           .select()
-          .eq("user_id", userID); // Correct
-        console.log("header data", data);
+          .eq("user_id", userID)
+          .order('position', { ascending: true }); // Add ordering by position
 
         if (error) {
           console.error("Error fetching user header:", error);
         } else {
-          data.forEach((content) => {
-            setContent((prevContents) => [
-              ...prevContents,
-              {
-                header: content.content,
-                id: content.header_id,
-                active: content.active,
-                link: content.isLink,
-              },
-            ]);
-          });
+          // Clear existing content before adding new
+          setContent([]);
+          // Add all headers at once instead of one by one
+          const formattedContent = data.map(content => ({
+            header: content.content,
+            id: content.header_id,
+            active: content.active,
+            link: content.isLink,
+          }));
+          setContent(formattedContent);
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
       }
     };
 
-    fetchHeaderData();
+    if (userID) {
+      fetchHeaderData();
+    }
   }, [supabase, userID]);
 
   useEffect(() => {
