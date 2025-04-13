@@ -1,18 +1,10 @@
-import { HeaderCardProps } from "+/application/links/links-card";
+import { HeaderCardProps } from "../links/links-card";
 import { AddUserHeaderAction, AddUserLinkAction, UserActionTypes, UserState } from "@/utils/state/reducers/user-reducer";
+import { createAction } from "@reduxjs/toolkit";
+import { SocialLink } from "@/types/social-link";
 
 // actions/userActions.ts
-export const updateUserInfo = (payload: Partial<UserState>) => ({
-  type: UserActionTypes.UPDATE_USER_INFO,
-  payload,
-});
-
-export const addUserHeader = (header: HeaderCardProps[]) => ({
-  type: UserActionTypes.ADD_USER_HEADER,
-  payload: header,
-});
-
-export const addUserLink = (link: HeaderCardProps[]) => ({
-  type: UserActionTypes.ADD_USER_LINK,
-  payload: link,
-});
+export const updateUserInfo = createAction<Partial<UserState>>("user/updateUserInfo");
+export const updateSocialLinks = createAction<SocialLink[]>("user/updateSocialLinks");
+export const addUserHeader = createAction<HeaderCardProps[]>("user/addUserHeader");
+export const addUserLink = createAction<HeaderCardProps[]>("user/addUserLink");

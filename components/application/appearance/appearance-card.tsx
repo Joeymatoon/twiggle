@@ -30,11 +30,24 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
           setBio(data[0].bio || "");
           setProfileTitle(data[0].fullname || "");
           setAvatar(data[0].profile_pic_url || "");
-          setAvatarUrl(
-            data[0].profile_pic_url
-              ? `${process.env.NEXT_PUBLIC_SUPABASE_DB_URL}/storage/v1/object/public/${data[0].profile_pic_url}`
-              : ""
-          );
+          if (data[0].profile_pic_url) {
+            const { data: { publicUrl } } = supabase.storage
+              .from("avatars")
+              .getPublicUrl(data[0].profile_pic_url);
+            setAvatarUrl(publicUrl);
+            dispatch(updateUserInfo({
+              bio: data[0].bio || "",
+              profileTitle: data[0].fullname || "",
+              profilePic: publicUrl
+            }));
+          } else {
+            setAvatarUrl("");
+            dispatch(updateUserInfo({
+              bio: data[0].bio || "",
+              profileTitle: data[0].fullname || "",
+              profilePic: ""
+            }));
+          }
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -42,7 +55,49 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
     };
 
     fetchUserData();
-  }, [supabase, userID]);
+
+    // Subscribe to real-time updates
+    const channel = supabase
+      .channel('user_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'users',
+          filter: `user_id=eq.${userID}`,
+        },
+        (payload) => {
+          const newData = payload.new;
+          setBio(newData.bio || "");
+          setProfileTitle(newData.fullname || "");
+          setAvatar(newData.profile_pic_url || "");
+          if (newData.profile_pic_url) {
+            const { data: { publicUrl } } = supabase.storage
+              .from("avatars")
+              .getPublicUrl(newData.profile_pic_url);
+            setAvatarUrl(publicUrl);
+            dispatch(updateUserInfo({
+              bio: newData.bio || "",
+              profileTitle: newData.fullname || "",
+              profilePic: publicUrl
+            }));
+          } else {
+            setAvatarUrl("");
+            dispatch(updateUserInfo({
+              bio: newData.bio || "",
+              profileTitle: newData.fullname || "",
+              profilePic: ""
+            }));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase, userID, dispatch]);
 
   const handleProfileTitleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
@@ -99,58 +154,58 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
         throw new Error('Image size should be less than 5MB');
       }
 
-      // First check if the bucket exists
-      const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
-      if (bucketError) throw bucketError;
-
-      const bucketExists = buckets.some(bucket => bucket.name === 'avatars');
-      if (!bucketExists) {
-        throw new Error('Avatars bucket not found. Please create it in your Supabase dashboard.');
-      }
-
-      // Delete existing avatar if it exists
-      if (avatar) {
-        const { error: deleteError } = await supabase.storage
-          .from("avatars")
-          .remove([avatar]);
-        
-        if (deleteError) throw deleteError;
-      }
-
-      // Upload new avatar
       const fileExt = file.name.split('.').pop();
       const fileName = `${userID}/avatar.${fileExt}`;
       
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: true
-        });
+      try {
+        // Delete existing avatar if it exists
+        if (avatar) {
+          const { error: deleteError } = await supabase.storage
+            .from("avatars")
+            .remove([avatar]);
+          
+          if (deleteError) throw deleteError;
+        }
 
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        throw uploadError;
+        // Upload new avatar
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("avatars")
+          .upload(`avatars/${userID}/avatar.${fileExt}`, file, {
+            cacheControl: '3600',
+            upsert: true
+          });
+
+        if (uploadError) {
+          if (uploadError.message.includes('bucket not found')) {
+            throw new Error('Storage bucket not found. Please create an "avatars" bucket in your Supabase dashboard with public access.');
+          }
+          throw uploadError;
+        }
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from("avatars")
+          .getPublicUrl(`avatars/${userID}/avatar.${fileExt}`);
+
+        // Update user record with the correct path
+        const { error: updateError } = await supabase
+          .from("users")
+          .update({ profile_pic_url: `avatars/${userID}/avatar.${fileExt}` })
+          .eq("user_id", userID);
+
+        if (updateError) throw updateError;
+
+        setAvatarUrl(publicUrl);
+        setAvatar(`avatars/${userID}/avatar.${fileExt}`);
+        
+        // Dispatch update to Redux store
+        dispatch(updateUserInfo({ profilePic: publicUrl }));
+      } catch (error: any) {
+        if (error.message.includes('bucket not found')) {
+          throw new Error('Storage bucket not found. Please create an "avatars" bucket in your Supabase dashboard with public access.');
+        }
+        throw error;
       }
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from("avatars")
-        .getPublicUrl(fileName);
-
-      // Update user record
-      const { error: updateError } = await supabase
-        .from("users")
-        .update({ profile_pic_url: `avatars/${fileName}` })
-        .eq("user_id", userID);
-
-      if (updateError) throw updateError;
-
-      setAvatarUrl(publicUrl);
-      setAvatar(`avatars/${fileName}`);
-      
-      // Dispatch update to Redux store
-      dispatch(updateUserInfo({ profilePic: publicUrl }));
     } catch (error: any) {
       console.error("Error updating avatar:", error);
       alert(error.message || "Failed to update avatar. Please try again.");

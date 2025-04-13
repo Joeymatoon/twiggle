@@ -38,7 +38,7 @@ export default function Marketplace() {
             bio: profileData.bio || "",
             avatar: profileData.profile_pic_url || "",
             avatarUrl: profileData.profile_pic_url
-              ? `${process.env.NEXT_PUBLIC_SUPABASE_DB_URL}/storage/v1/object/public/${profileData.profile_pic_url}`
+              ? `https://qjpqmdezsulsnwjblvsl.supabase.co/storage/v1/object/public/${profileData.profile_pic_url}`
               : "",
             profileTitle: profileData.fullname || "",
             username: profileData.username || "",

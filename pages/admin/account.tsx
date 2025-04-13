@@ -69,7 +69,7 @@ export default function Account() {
             avatarUrl:
               data[0].profile_pic_url === null
                 ? ""
-                : `${process.env.NEXT_PUBLIC_SUPABASE_DB_URL}/storage/v1/object/public/${data[0].profile_pic_url}`,
+                : `https://qjpqmdezsulsnwjblvsl.supabase.co/storage/v1/object/public/${data[0].profile_pic_url}`,
           }));
         }
       } catch (error) {

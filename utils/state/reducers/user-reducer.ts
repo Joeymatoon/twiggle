@@ -1,6 +1,7 @@
 // reducer/user-reducer.ts
 import { HeaderCardProps } from "+/application/links/links-card";
 import { Reducer } from "redux";
+import { SocialLink } from "@/types/social-link";
 
 // Define the interface for the user state
 export interface UserState {
@@ -9,13 +10,14 @@ export interface UserState {
   bio: string;
   profileTitle: string;
   header: HeaderCardProps[]; // Assuming links are represented as an array of header card
+  socialLinks: SocialLink[];
 }
 
 // Define action types
 export enum UserActionTypes {
-  UPDATE_USER_INFO = "UPDATE_USER_INFO",
-  ADD_USER_HEADER = "ADD_USER_HEADER",
-  ADD_USER_LINK = "ADD_USER_LINK",
+  UPDATE_USER_INFO = "user/updateUserInfo",
+  ADD_USER_HEADER = "user/addUserHeader",
+  ADD_USER_LINK = "user/addUserLink",
 }
 
 // Define action interfaces
@@ -26,17 +28,16 @@ interface UpdateUserInfoAction {
 
 export interface AddUserHeaderAction {
   type: UserActionTypes.ADD_USER_HEADER;
-  payload: HeaderCardProps;
+  payload: HeaderCardProps[];
 }
 
 export interface AddUserLinkAction {
   type: UserActionTypes.ADD_USER_LINK;
-  payload: HeaderCardProps;
+  payload: HeaderCardProps[];
 }
 
 // Define a union type for all possible actions
-type UserAction = UpdateUserInfoAction | AddUserHeaderAction
-| AddUserLinkAction | UnknownAction;
+export type UserAction = UpdateUserInfoAction | AddUserHeaderAction | AddUserLinkAction;
 
 // Define the initial state for the user reducer
 const initialState: UserState = {
@@ -45,6 +46,7 @@ const initialState: UserState = {
   bio: "",
   profileTitle: "",
   header: [],
+  socialLinks: [],
 };
 
 // Define the user reducer function
@@ -57,6 +59,16 @@ const userReducer: Reducer<UserState, UserAction> = (
       return {
         ...state,
         ...action.payload, // Update only the specified fields
+      };
+    case UserActionTypes.ADD_USER_HEADER:
+      return {
+        ...state,
+        header: action.payload,
+      };
+    case UserActionTypes.ADD_USER_LINK:
+      return {
+        ...state,
+        socialLinks: action.payload,
       };
     default:
       return state;
