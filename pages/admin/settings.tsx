@@ -56,29 +56,22 @@ export default function Settings() {
     // Fetch user data when the component mounts
     const fetchHeaderData = async () => {
       try {
+        if (!userID) {
+          console.error("No user ID available");
+          return;
+        }
+
         const { data, error } = await supabase
           .from("headers")
-          .select()
-          .eq("user_id", userID); // Correct
-        console.log("header data", data);
+          .select("*")
+          .eq("user_id", userID)
+          .order("position", { ascending: true });
 
-        if (error) {
-          console.error("Error fetching user header:", error);
-        } else {
-          data.forEach((content) => {
-            setContent((prevContents) => [
-              ...prevContents,
-              {
-                header: content.content,
-                id: content.header_id,
-                active: content.active,
-                link: content.isLink,
-              },
-            ]);
-          });
-        }
+        if (error) throw error;
+        console.log("header data", data);
+        setHeaderData(data || []);
       } catch (error) {
-        console.error("Error fetching user data:", error);
+        console.error("Error fetching user header:", error);
       }
     };
 

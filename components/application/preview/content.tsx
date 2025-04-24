@@ -2,9 +2,10 @@ import { Avatar, Button } from "@nextui-org/react";
 import { HeaderCardProps } from "../links/links-card";
 import { useEffect, useState } from "react";
 import NextLink from "next/link";
-import { createClient } from "@/utils/supabase/components";
 import axios from "axios";
 import { ProfileDataProps } from "@/pages/admin";
+
+// Remove unused createClient import and fetchHeaders function since we're getting content from props
 
 interface PreviewProps {
   content: HeaderCardProps[];
@@ -62,36 +63,33 @@ export const PreviewContent: React.FC<PreviewProps> = ({
   );
 };
 
+// Keep AsyncHeaderTitle component as is, but move validateUrl inside the component
 const AsyncHeaderTitle: React.FC<{ link: string }> = ({ link }) => {
   const [title, setTitle] = useState<string>("");
-
-  useEffect(() => {
-    const fetchTitle = async () => {
-      const resolvedTitle = await headerTitle(link);
-      setTitle(resolvedTitle);
-    };
-
-    const headerTitle = async (link: string) => {
-      try {
-        const response = await axios.get(
-          `/api/metadata?url=${encodeURIComponent(validateUrl(link))}`
-        );
-        if (response.data.title) {
-          return response.data.title;
-        }
-      } catch (error) {
-        console.error("Error fetching metadata:", error);
-      }
-      return link;
-    };
-
-    fetchTitle();
-  }, [link]);
 
   const validateUrl = (url: string) => {
     const pattern = /^(https?:\/\/)/i;
     return pattern.test(url) ? url : `http://${url}`;
   };
+
+  useEffect(() => {
+    const fetchTitle = async () => {
+      try {
+        const response = await axios.get(
+          `/api/metadata?url=${encodeURIComponent(validateUrl(link))}`
+        );
+        if (response.data.title) {
+          setTitle(response.data.title);
+          return;
+        }
+      } catch (error) {
+        console.error("Error fetching metadata:", error);
+      }
+      setTitle(link);
+    };
+
+    fetchTitle();
+  }, [link]);
 
   return <>{title || link}</>;
 };

@@ -43,6 +43,7 @@ export const AppearanceSection: React.FC<AppearanceProps> = ({
           onOpenChange={onOpenChange}
           content={content}
           profileData={profileData}
+          userID={userID}
         />
       </div>
     </div>

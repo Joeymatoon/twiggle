@@ -6,11 +6,12 @@ import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 
 export interface HeaderCardProps {
-  header: string;
   id: string;
-  metadata?: string;
+  header: string;  // maps to title in DB
   active: boolean;
-  link: boolean;
+  link: boolean;   // maps to isLink in DB
+  position: number;
+  metadata?: string;  // Optional metadata for links
 }
 export type SetHeaderCardProps = React.Dispatch<
   React.SetStateAction<HeaderCardProps[]>
@@ -22,38 +23,80 @@ export const HeaderCard: React.FC<{
   onDelete: () => void;
 }> = ({ state, setState, onDelete }) => {
   const [isReadOnly, setIsReadOnly] = useState<boolean>(true);
+  const [metadata, setMetadata] = useState<string>("");
   const dispatch = useDispatch();
   const supabase = createClient();
 
+  useEffect(() => {
+    if (state.link && state.header) {
+      fetchMetadata(state.header);
+    }
+  }, [state.header, state.link]);
 
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setState({
-      ...state,
-      header: event.target.value,
-    });
-    dispatch(updateUserInfo({ header: [state] }));
-    updateHeaderContent(state.id, event.target.value);
+  const fetchMetadata = async (url: string) => {
+    try {
+      const response = await axios.get(
+        `/api/metadata?url=${encodeURIComponent(validateUrl(url))}`
+      );
+      if (response.data.title) {
+        setMetadata(response.data.title);
+      }
+    } catch (error) {
+      console.error("Error fetching metadata:", error);
+      setMetadata("");
+    }
+  };
+
+  const validateUrl = (url: string) => {
+    const pattern = /^(https?:\/\/)/i;
+    return pattern.test(url) ? url : `http://${url}`;
   };
 
   const updateHeaderContent = async (id: string, header: string) => {
     const { error } = await supabase
       .from("headers")
-      .update({ content: header })
-      .eq("header_id", id);
-
+      .update({ 
+        title: header,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", id);
+  
     if (error) {
       console.error("Error updating header content", error);
-    } else {
-      console.log("header content successfully updated");
+      return false;
+    }
+    return true;
+  };
+  
+  const handleChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newHeader = event.target.value;
+    const success = await updateHeaderContent(state.id, newHeader);
+    
+    if (success) {
+      setState({
+        ...state,
+        header: newHeader,
+      });
+      dispatch(updateUserInfo({ header: [state] }));
     }
   };
 
+  // We need to add the active column to the database first
+  // Here's the SQL to add it:
+  /*
+  ALTER TABLE headers
+  ADD COLUMN active boolean DEFAULT false;
+  */
+  
   const updateHeaderActive = async (id: string, isActive: boolean) => {
     const { error } = await supabase
       .from("headers")
-      .update({ active: isActive })
-      .eq("header_id", id);
-
+      .update({ 
+        active: isActive,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", id);
+  
     if (error) {
       console.error("Error updating header active", error);
     } else {
@@ -77,10 +120,10 @@ export const HeaderCard: React.FC<{
       <div id="drag-icon">
         <i className="ri-draggable"></i>
       </div>
-      <div>
-        {state.link === true && (
+      <div className="flex-1 mx-4">
+        {state.link && metadata && (
           <Input
-            placeholder={state.metadata ? state.metadata : "No site info"}
+            value={metadata}
             className="text-default-500"
             classNames={{
               inputWrapper: [
@@ -95,13 +138,9 @@ export const HeaderCard: React.FC<{
         )}
         <Input
           placeholder={
-            state.header !== ""
-              ? state.header
-              : state.link === false
-              ? "Headline title"
-              : "link here"
+            state.link ? "Enter URL" : "Enter header text"
           }
-          value={state.header !== undefined ? state.header : undefined}
+          value={state.header}
           className="text-default-500"
           classNames={{
             inputWrapper: [

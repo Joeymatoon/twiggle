@@ -42,6 +42,7 @@ export const SettingSection: React.FC<SettingsProps> = ({
           onOpenChange={onOpenChange}
           content={content}
           profileData={profileData}
+          userID={userID}
         />
       </div>
     </div>

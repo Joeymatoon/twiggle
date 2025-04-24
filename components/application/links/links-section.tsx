@@ -33,32 +33,56 @@ export const LinksSection: React.FC<LinksProps> = ({
   const user = useSelector((state: RootState) => state.user);
   const supabase = createClient();
 
-  const handleAddHeader = () => {
-    const id = v4();
-    const newHeader = {
-      header: "",
-      id: id,
-      active: false,
-      link: false,
-    };
-    const newIndex = content.length; // Index of the newly added header
-    setContentState((prevContents) => [...prevContents, newHeader]);
-    dispatch(addUserHeader([...user.header, newHeader])); // Dispatch action to add header
-    uploadHeader(id, newIndex, false);
-  };
-
   const uploadHeader = async (id: string, index: number, isLink: boolean) => {
     const { error } = await supabase.from("headers").insert({
-      header_id: id,
+      id: id,
       user_id: userID,
-      content: "",
+      title: "",
       position: index,
-      isLink: isLink,
+      is_link: isLink,  // Changed from isLink to is_link to match DB column
+      active: false
     });
+  
     if (error) {
-      console.error("Error uploading header", error);
-    } else {
-      console.log("Header uploaded successfully");
+      console.error("Error uploading header:", error);
+      return false;
+    }
+    return true;
+  };
+  
+  const handleAddHeader = async () => {
+    const id = v4();
+    const newIndex = content.length;
+    const success = await uploadHeader(id, newIndex, false);
+    
+    if (success) {
+      const newHeader: HeaderCardProps = {
+        header: "",
+        id: id,
+        active: false,
+        link: false,
+        position: newIndex
+      };
+      setContentState((prevContents) => [...prevContents, newHeader]);
+      dispatch(addUserHeader([...user.header, newHeader]));
+    }
+  };
+  
+  const handleAddLink = async () => {
+    const id = v4();
+    const newIndex = content.length;
+    const success = await uploadHeader(id, newIndex, true);
+    
+    if (success) {
+      const newLink: HeaderCardProps = {
+        header: "",
+        id: id,
+        active: false,
+        link: true,
+        position: newIndex
+      };
+      setContentState((prevContents) => [...prevContents, newLink]);
+      dispatch(addUserLink([...user.header, newLink]));
     }
   };
 
@@ -66,7 +90,7 @@ export const LinksSection: React.FC<LinksProps> = ({
     const { error } = await supabase
       .from("headers")
       .delete()
-      .eq("header_id", id);
+      .eq("id", id);  // Changed from header_id to id
     if (error) {
       console.error("Error deleting header", error);
     } else {
@@ -74,47 +98,42 @@ export const LinksSection: React.FC<LinksProps> = ({
     }
   };
 
-  const handleAddLink = () => {
-    const id = v4();
-    const newLink = {
-      header: "",
-      id: id,
-      active: false,
-      link: true,
-    };
-    const newIndex = content.length; // Index of the newly added header
-    setContentState((prevContents) => [...prevContents, newLink]);
-    dispatch(addUserLink([...user.header, newLink])); // Dispatch action to add link
-    uploadHeader(id, newIndex, true);
-  };
-
+  // Update the handleSort function to use the correct field name
   const handleSort = (result: DropResult) => {
-    if (!result.destination) return; // dropped outside the list
+    if (!result.destination) return;
     const items = Array.from(content);
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
-    setContentState(items);
 
-    // Update position in state or send to backend
-    const updatedPositions = items.map((item, index) => ({
-      header_id: item.id,
-      position: index,
+    // Update positions for all items
+    const updatedItems = items.map((item, index) => ({
+      ...item,
+      position: index
     }));
-
-    // Example of sending positions to backend
+    
+    setContentState(updatedItems);
+  
+    const updatedPositions = updatedItems.map((item) => ({
+      id: item.id,
+      position: item.position,
+      updated_at: new Date().toISOString()
+    }));
+  
     sendPositionsToBackend(updatedPositions);
   };
-
+  
   const sendPositionsToBackend = async (
-    positions: { header_id: string; position: number }[]
+    positions: { id: string; position: number }[]
   ) => {
     try {
-      const { error } = await supabase.from("headers").upsert(positions);
-      if (error) {
-        console.error("Error updating positions:", error);
-      } else {
-        console.log("Positions updated successfully");
-      }
+      const { error } = await supabase.from("headers").upsert(
+        positions.map(pos => ({
+          id: pos.id,
+          position: pos.position,
+          updated_at: new Date().toISOString()
+        }))
+      );
+      if (error) throw error;
     } catch (error) {
       console.error("Error updating positions:", error);
     }
@@ -163,41 +182,40 @@ export const LinksSection: React.FC<LinksProps> = ({
         </div>
         <DragDropContext onDragEnd={handleSort}>
           <div className="px-0 w-full md:max-w-xl mt-8 overflow-y-scroll h-[60vh] md:h-[48vh] flex flex-col gap-3">
-            <div>
-              <Droppable droppableId="droppable">
-                {(provided, snapshot) => (
-                  <div
-                    {...provided.droppableProps}
-                    ref={provided.innerRef}
-                    className="flex flex-col w-full box-content justify-start items-center"
-                  >
-                    {content.map((item, index) => (
-                      <Draggable
-                        key={item.id}
-                        draggableId={item.id}
-                        index={index}
-                      >
-                        {(provided, snapshot) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            className="mb-4 box-content px-0 w-full md:max-w-xl"
-                          >
-                            <HeaderCard
-                              state={item}
-                              setState={handleHeaderCardStateChange}
-                              onDelete={() => handleDelete(item.id)}
-                            />
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            </div>
+            <Droppable droppableId="droppable">
+              {(provided, snapshot) => (
+                <div
+                  {...provided.droppableProps}
+                  ref={provided.innerRef}
+                  className="flex flex-col w-full box-content justify-start items-center"
+                >
+                  {content.map((item, index) => (
+                    <Draggable
+                      key={item.id}
+                      draggableId={item.id}
+                      index={index}
+                    >
+                      {(provided, snapshot) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                          className="mb-4 box-content px-0 w-full md:max-w-xl"
+                        >
+                          <HeaderCard
+                            key={`header-${item.id}`}
+                            state={item}
+                            setState={handleHeaderCardStateChange}
+                            onDelete={() => handleDelete(item.id)}
+                          />
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
           </div>
         </DragDropContext>
       </div>
@@ -220,6 +238,7 @@ export const LinksSection: React.FC<LinksProps> = ({
           onOpenChange={onOpenChange}
           content={content}
           profileData={profileData}
+          userID={userID}
         />
       </div>
     </div>

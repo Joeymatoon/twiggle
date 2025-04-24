@@ -17,24 +17,21 @@ export const Preview: React.FC<PreviewProps> = ({
   useEffect(() => {
     function updateScaleFactor() {
       const screenHeight = window.innerHeight;
-      // Define your logic to calculate scale factor based on screen height
-      let newScaleFactor = Math.round(screenHeight * 1.033) / 1000; // 1000 is an arbitrary value, adjust it as needed
+      let newScaleFactor = Math.round(screenHeight * 1.033) / 1000;
       setScaleFactor(newScaleFactor);
     }
 
-    // Update scale factor initially
     updateScaleFactor();
-
-    // Add event listener for resize to update scale factor when screen size changes
     window.addEventListener("resize", updateScaleFactor);
     return () => {
       window.removeEventListener("resize", updateScaleFactor);
     };
-  }, []); // empty dependency array ensures the effect runs only once after mount
+  }, []);
 
   const scaledStyle = {
     transform: `scale(${scaleFactor})`,
   };
+
   return (
     <>
       <section className="hidden md:flex w-1/3 h-[80vh] justify-center items-start mt-20">
