@@ -4,61 +4,100 @@ import { useEffect, useState } from "react";
 import NextLink from "next/link";
 import axios from "axios";
 import { ProfileDataProps } from "@/pages/admin";
+import { createClient } from "@/utils/supabase/components";
 
 // Remove unused createClient import and fetchHeaders function since we're getting content from props
 
-interface PreviewProps {
-  content: HeaderCardProps[];
+interface PreviewContentProps {
   profileData: ProfileDataProps;
+  content: HeaderCardProps[];
 }
 
-export const PreviewContent: React.FC<PreviewProps> = ({
-  content,
+export const PreviewContent: React.FC<PreviewContentProps> = ({
   profileData,
+  content,
 }) => {
+  const [userData, setUserData] = useState<any>(null);
+  const supabase = createClient();
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("users")
+          .select("*")
+          .eq("id", profileData.userID)
+          .single();
+
+        if (error) throw error;
+        setUserData(data);
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    };
+
+    if (profileData.userID) {
+      fetchUserData();
+    }
+  }, [profileData.userID, supabase]);
+
   const validateUrl = (url: string) => {
     const pattern = /^(https?:\/\/)/i;
     return pattern.test(url) ? url : `http://${url}`;
   };
 
   return (
-    <div className="w-full">
-      <div className="flex flex-col justify-center items-center w-full">
-        <Avatar
-          name={profileData.profileTitle[0]?.toUpperCase() || "@"}
-          className="w-20 h-20 text-3xl text-white bg-black mb-2"
-          src={profileData.avatarUrl}
-        />
-        <span className="text-default-900 font-bold">
-          {profileData.profileTitle || "@username"}
-        </span>
-        <span className="text-xs text-default-500">
-          {profileData.bio || "your bio"}
-        </span>
+    <div className="flex flex-col items-center w-full min-h-screen bg-gradient-to-b from-default-50 to-default-100">
+      {/* Profile Section */}
+      <div className="w-full flex flex-col items-center pt-8 pb-4 animate-fade-in">
+        {profileData.avatarUrl && (
+          <div className="w-24 h-24 rounded-full overflow-hidden mb-4 transform hover:scale-105 transition-transform duration-300">
+            <img
+              src={profileData.avatarUrl}
+              alt="Profile"
+              className="object-cover w-full h-full"
+            />
+          </div>
+        )}
+        <h1 className="text-xl font-bold mb-2 animate-slide-up">{profileData.profileTitle || 'Add your name'}</h1>
+        <p className="text-default-600 text-center px-4 mb-4 animate-slide-up delay-100 max-w-md">
+          {userData?.bio || profileData.bio || 'Add your bio'}
+        </p>
       </div>
-      {content.map((item, index) => (
-        <div key={item.id} className="my-2 w-full">
-          {item.active ? (
-            item.link ? (
-              <NextLink href={validateUrl(item.header)} target="_blank">
-                <Button radius="sm" size="lg" fullWidth color="secondary">
-                  <span className="flex overflow-auto flex-wrap">
-                    {item.header ? (
-                      <AsyncHeaderTitle link={item.header} />
-                    ) : (
-                      "Loading..."
-                    )}
-                  </span>
-                </Button>
-              </NextLink>
+
+      {/* Links Section */}
+      <div className="w-full px-4 space-y-4 mb-8 animate-slide-up delay-300">
+        {content.map((item, index) => (
+          <div key={item.id}>
+            {item.link ? (
+              <a
+                href={item.header}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full p-4 bg-white hover:bg-gray-50 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-[1.02]"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <i className="ri-link text-default-400" />
+                    <span className="font-medium">{item.header || 'Add a link'}</span>
+                  </div>
+                  <i className="ri-external-link-line text-default-400" />
+                </div>
+              </a>
             ) : (
-              <span className="w-full flex items-center justify-center">
-                {item.header}
-              </span>
-            )
-          ) : null}
-        </div>
-      ))}
+              <div className="w-full flex items-center justify-center p-4">
+                <span className="font-medium">{item.header || 'Add a header'}</span>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Footer */}
+      <div className="w-full px-4 py-6 text-center text-default-500 text-sm animate-fade-in delay-500">
+        <p>Powered by Twiggle</p>
+      </div>
     </div>
   );
 };

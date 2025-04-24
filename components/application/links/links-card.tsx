@@ -9,21 +9,21 @@ export interface HeaderCardProps {
   id: string;
   header: string;  // maps to title in DB
   active: boolean;
-  link: boolean;   // maps to isLink in DB
+  link: boolean;   // maps to is_link in DB
   position: number;
   metadata?: string;  // Optional metadata for links
 }
-export type SetHeaderCardProps = React.Dispatch<
-  React.SetStateAction<HeaderCardProps[]>
->;
+
+export type SetHeaderCardProps = React.Dispatch<React.SetStateAction<HeaderCardProps[]>>;
 
 export const HeaderCard: React.FC<{
   state: HeaderCardProps;
   setState: (updatedState: HeaderCardProps) => void;
   onDelete: () => void;
 }> = ({ state, setState, onDelete }) => {
-  const [isReadOnly, setIsReadOnly] = useState<boolean>(true);
+  const [isReadOnly, setIsReadOnly] = useState<boolean>(false);
   const [metadata, setMetadata] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const dispatch = useDispatch();
   const supabase = createClient();
 
@@ -35,6 +35,7 @@ export const HeaderCard: React.FC<{
 
   const fetchMetadata = async (url: string) => {
     try {
+      setIsLoading(true);
       const response = await axios.get(
         `/api/metadata?url=${encodeURIComponent(validateUrl(url))}`
       );
@@ -44,6 +45,8 @@ export const HeaderCard: React.FC<{
     } catch (error) {
       console.error("Error fetching metadata:", error);
       setMetadata("");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -80,13 +83,6 @@ export const HeaderCard: React.FC<{
       dispatch(updateUserInfo({ header: [state] }));
     }
   };
-
-  // We need to add the active column to the database first
-  // Here's the SQL to add it:
-  /*
-  ALTER TABLE headers
-  ADD COLUMN active boolean DEFAULT false;
-  */
   
   const updateHeaderActive = async (id: string, isActive: boolean) => {
     const { error } = await supabase
@@ -99,47 +95,40 @@ export const HeaderCard: React.FC<{
   
     if (error) {
       console.error("Error updating header active", error);
-    } else {
-      console.log("header active successfully updated");
+      return false;
+    }
+    return true;
+  };
+
+  const handleActive = async () => {
+    const success = await updateHeaderActive(state.id, !state.active);
+    if (success) {
+      setState({
+        ...state,
+        active: !state.active,
+      });
     }
   };
 
-  const handleActive = () => {
-    updateHeaderActive(state.id, !state.active);
-    setState({
-      ...state,
-      active: !state.active,
-    });
-  };
-
-  const handleDelete = () => {
-    onDelete();
-  };
   return (
-    <div className="md:max-w-xl md:p-6 box-content h-20 border-1 flex justify-between items-center rounded-3xl">
-      <div id="drag-icon">
+    <div className="md:max-w-xl md:p-6 box-content h-auto min-h-20 border-1 flex justify-between items-center rounded-3xl">
+      <div id="drag-icon" className="px-4">
         <i className="ri-draggable"></i>
       </div>
-      <div className="flex-1 mx-4">
-        {state.link && metadata && (
-          <Input
-            value={metadata}
-            className="text-default-500"
-            classNames={{
-              inputWrapper: [
-                "bg-transparent hover:!bg-transparent focus-within:!bg-transparent",
-                "shadow-none",
-              ],
-              innerWrapper: "bg-transparent",
-              input: "max-w-full",
-            }}
-            isReadOnly
-          />
+      <div className="flex-1 mx-4 py-4">
+        {state.link && metadata && !isLoading && (
+          <div className="mb-2 text-sm text-default-500 truncate">
+            {metadata}
+          </div>
+        )}
+        {isLoading && (
+          <div className="mb-2 flex items-center gap-2">
+            <div className="animate-spin h-4 w-4 border-2 border-secondary rounded-full border-t-transparent"></div>
+            <span className="text-sm text-default-500">Loading metadata...</span>
+          </div>
         )}
         <Input
-          placeholder={
-            state.link ? "Enter URL" : "Enter header text"
-          }
+          placeholder={state.link ? "Enter URL" : "Enter header text"}
           value={state.header}
           className="text-default-500"
           classNames={{
@@ -151,12 +140,24 @@ export const HeaderCard: React.FC<{
             input: "max-w-full",
           }}
           onChange={handleChange}
-          endContent={isReadOnly ? <i className="ri-edit-2-line"></i> : ""}
+          onFocus={() => setIsReadOnly(false)}
+          onBlur={() => setIsReadOnly(true)}
         />
       </div>
-      <div className="flex flex-col justify-center gap-5 items-center">
-        <Switch isSelected={state.active} size="sm" onClick={handleActive} />
-        <i className="ri-delete-bin-line text-xl" onClick={handleDelete}></i>
+      <div className="flex flex-col justify-center gap-5 items-center px-4">
+        <Switch 
+          isSelected={state.active} 
+          size="sm" 
+          onChange={handleActive}
+          aria-label={state.active ? "Deactivate" : "Activate"}
+        />
+        <button
+          onClick={onDelete}
+          className="text-danger hover:text-danger-400 transition-colors"
+          aria-label="Delete"
+        >
+          <i className="ri-delete-bin-line text-xl"></i>
+        </button>
       </div>
     </div>
   );

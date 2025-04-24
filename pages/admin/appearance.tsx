@@ -11,15 +11,16 @@ import { HeaderCardProps } from "+/application/links/links-card";
 
 export default function Appearance() {
   const [isWideScreen, setIsWideScreen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [profileData, setProfileData] = useState<ProfileDataProps>({
     bio: "",
     avatar: "",
     avatarUrl: "",
     profileTitle: "",
     username: "",
+    userID: ""
   });
   const [content, setContent] = useState<HeaderCardProps[]>([]);
-  const [userData, setUserData] = useState();
   const [userID, setUserID] = useState("");
   const supabase = createClient();
 
@@ -27,16 +28,12 @@ export default function Appearance() {
     const handleResize = () => {
       setIsWideScreen(window.innerWidth > 768);
     };
-    // Set initial value on component mount
     handleResize();
-    // Add event listener to update state when window is resized
     window.addEventListener("resize", handleResize);
-    // Clean up event listener on component unmount
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   useEffect(() => {
-    // Check if user is already logged in
     const checkLoggedIn = async () => {
       try {
         const response = await axios.get("/api/login/check");
@@ -44,43 +41,43 @@ export default function Appearance() {
           router.push("/login");
         } else {
           setUserID(response.data.session.id);
-          setUserData(response.data.session.user_metadata);
         }
       } catch (error) {
         console.error("Error checking login status:", error);
+        router.push("/login");
       }
     };
 
     checkLoggedIn();
-  }, []); // Run once when component mounts
+  }, []);
 
   useEffect(() => {
-    // Fetch user data when the component mounts
     const fetchHeaderData = async () => {
+      if (!userID) return;
+      
       try {
+        setIsLoading(true);
         const { data, error } = await supabase
           .from("headers")
-          .select()
-          .eq("user_id", userID); // Correct
-        console.log("header data", data);
+          .select("*")
+          .eq("user_id", userID)
+          .order("position", { ascending: true });
 
-        if (error) {
-          console.error("Error fetching user header:", error);
-        } else {
-          data.forEach((content) => {
-            setContent((prevContents) => [
-              ...prevContents,
-              {
-                header: content.content,
-                id: content.header_id,
-                active: content.active,
-                link: content.isLink,
-              },
-            ]);
-          });
-        }
+        if (error) throw error;
+
+        const formattedHeaders = data.map(header => ({
+          id: header.id,
+          header: header.title || "",
+          active: header.active || false,
+          link: header.is_link || false,
+          position: header.position || 0
+        }));
+
+        setContent(formattedHeaders);
       } catch (error) {
-        console.error("Error fetching user data:", error);
+        console.error("Error fetching headers:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -89,24 +86,30 @@ export default function Appearance() {
 
   useEffect(() => {
     const fetchUserData = async () => {
+      if (!userID) return;
+
       try {
         const { data, error } = await supabase
           .from("users")
           .select()
-          .eq("user_id", userID);
+          .eq("id", userID)
+          .single();
 
-        if (data && data.length > 0) {
-          setProfileData((prevInputs: any) => ({
-            ...prevInputs,
-            bio: data[0].bio || "",
-            profileTitle: data[0].fullname,
-            avatar: data[0].profile_pic_url,
-            username: data[0].username,
-            avatarUrl:
-              data[0].profile_pic_url === null
-                ? ""
-                : `https://qjpqmdezsulsnwjblvsl.supabase.co/storage/v1/object/public/${data[0].profile_pic_url}`,
-          }));
+        if (error) throw error;
+
+        if (data) {
+          const { data: { publicUrl } } = supabase.storage
+            .from("avatars")
+            .getPublicUrl(data.profile_pic_url?.replace('avatars/', '') || '');
+
+          setProfileData({
+            bio: data.bio || "",
+            profileTitle: data.fullname || "",
+            avatar: data.profile_pic_url || "",
+            username: data.username || "",
+            avatarUrl: publicUrl,
+            userID: userID
+          });
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -114,7 +117,49 @@ export default function Appearance() {
     };
 
     fetchUserData();
+
+    // Subscribe to real-time updates
+    const channel = supabase
+      .channel('user_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'users',
+          filter: `id=eq.${userID}`,
+        },
+        (payload: any) => {
+          const newData = payload.new;
+          const { data: { publicUrl } } = supabase.storage
+            .from("avatars")
+            .getPublicUrl(newData.profile_pic_url?.replace('avatars/', '') || '');
+
+          setProfileData({
+            bio: newData.bio || "",
+            profileTitle: newData.fullname || "",
+            avatar: newData.profile_pic_url || "",
+            username: newData.username || "",
+            avatarUrl: publicUrl,
+            userID: userID
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [supabase, userID]);
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin h-8 w-8 border-2 border-secondary rounded-full border-t-transparent"></div>
+      </div>
+    );
+  }
+
   return (
     <>
       <Head icon="logo-alt" title="Twiggle Admin" />

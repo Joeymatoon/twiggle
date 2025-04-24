@@ -12,45 +12,57 @@ interface AppearanceProps {
 export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
   const dispatch = useDispatch();
   const supabase = createClient();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [profileTitle, setProfileTitle] = useState("");
   const [bio, setBio] = useState("");
   const [avatar, setAvatar] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
+        setIsLoading(true);
+        setError(null);
         const { data, error } = await supabase
           .from("users")
           .select()
-          .eq("user_id", userID);
+          .eq("id", userID)
+          .single();
 
-        if (data && data.length > 0) {
-          setBio(data[0].bio || "");
-          setProfileTitle(data[0].fullname || "");
-          setAvatar(data[0].profile_pic_url || "");
-          if (data[0].profile_pic_url) {
+        if (error) throw error;
+
+        if (data) {
+          setBio(data.bio || "");
+          setProfileTitle(data.fullname || "");
+          setAvatar(data.profile_pic_url || "");
+          
+          if (data.profile_pic_url) {
             const { data: { publicUrl } } = supabase.storage
               .from("avatars")
-              .getPublicUrl(data[0].profile_pic_url);
+              .getPublicUrl(data.profile_pic_url);
             setAvatarUrl(publicUrl);
             dispatch(updateUserInfo({
-              bio: data[0].bio || "",
-              profileTitle: data[0].fullname || "",
+              bio: data.bio || "",
+              profileTitle: data.fullname || "",
               profilePic: publicUrl
             }));
           } else {
             setAvatarUrl("");
             dispatch(updateUserInfo({
-              bio: data[0].bio || "",
-              profileTitle: data[0].fullname || "",
+              bio: data.bio || "",
+              profileTitle: data.fullname || "",
               profilePic: ""
             }));
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching user data:", error);
+        setError(error.message || "Failed to load user data");
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -65,13 +77,14 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
           event: 'UPDATE',
           schema: 'public',
           table: 'users',
-          filter: `user_id=eq.${userID}`,
+          filter: `id=eq.${userID}`,
         },
         (payload) => {
           const newData = payload.new;
           setBio(newData.bio || "");
           setProfileTitle(newData.fullname || "");
           setAvatar(newData.profile_pic_url || "");
+          
           if (newData.profile_pic_url) {
             const { data: { publicUrl } } = supabase.storage
               .from("avatars")
@@ -102,40 +115,46 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
   const handleProfileTitleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
     setProfileTitle(newTitle);
+    setError(null);
     
     try {
       const { error } = await supabase
         .from("users")
-        .update({ fullname: newTitle })
-        .eq("user_id", userID);
+        .update({ 
+          fullname: newTitle,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", userID);
       
       if (error) throw error;
       
-      // Dispatch update to Redux store
       dispatch(updateUserInfo({ profileTitle: newTitle }));
     } catch (error: any) {
       console.error("Error updating profile title:", error);
-      alert(error.message || "Failed to update profile title. Please try again.");
+      setError(error.message || "Failed to update profile title");
     }
   };
 
   const handleBioChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const newBio = e.target.value;
     setBio(newBio);
+    setError(null);
     
     try {
       const { error } = await supabase
         .from("users")
-        .update({ bio: newBio })
-        .eq("user_id", userID);
+        .update({ 
+          bio: newBio,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", userID);
       
       if (error) throw error;
       
-      // Dispatch update to Redux store
       dispatch(updateUserInfo({ bio: newBio }));
     } catch (error: any) {
       console.error("Error updating bio:", error);
-      alert(error.message || "Failed to update bio. Please try again.");
+      setError(error.message || "Failed to update bio");
     }
   };
 
@@ -144,6 +163,9 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
     if (!file) return;
 
     try {
+      setIsUploading(true);
+      setError(null);
+
       // Check file type
       if (!file.type.match(/image\/(jpeg|png|jpg)/)) {
         throw new Error('Please upload a valid image file (JPEG, PNG)');
@@ -155,65 +177,57 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
       }
 
       const fileExt = file.name.split('.').pop();
-      const fileName = `${userID}/avatar.${fileExt}`;
+      const filePath = `${userID}/avatar.${fileExt}`;
       
-      try {
-        // Delete existing avatar if it exists
-        if (avatar) {
-          const { error: deleteError } = await supabase.storage
-            .from("avatars")
-            .remove([avatar]);
-          
-          if (deleteError) throw deleteError;
-        }
-
-        // Upload new avatar
-        const { data: uploadData, error: uploadError } = await supabase.storage
+      // Delete existing avatar if it exists
+      if (avatar) {
+        const { error: deleteError } = await supabase.storage
           .from("avatars")
-          .upload(`avatars/${userID}/avatar.${fileExt}`, file, {
-            cacheControl: '3600',
-            upsert: true
-          });
-
-        if (uploadError) {
-          if (uploadError.message.includes('bucket not found')) {
-            throw new Error('Storage bucket not found. Please create an "avatars" bucket in your Supabase dashboard with public access.');
-          }
-          throw uploadError;
-        }
-
-        // Get public URL
-        const { data: { publicUrl } } = supabase.storage
-          .from("avatars")
-          .getPublicUrl(`avatars/${userID}/avatar.${fileExt}`);
-
-        // Update user record with the correct path
-        const { error: updateError } = await supabase
-          .from("users")
-          .update({ profile_pic_url: `avatars/${userID}/avatar.${fileExt}` })
-          .eq("user_id", userID);
-
-        if (updateError) throw updateError;
-
-        setAvatarUrl(publicUrl);
-        setAvatar(`avatars/${userID}/avatar.${fileExt}`);
+          .remove([avatar]);
         
-        // Dispatch update to Redux store
-        dispatch(updateUserInfo({ profilePic: publicUrl }));
-      } catch (error: any) {
-        if (error.message.includes('bucket not found')) {
-          throw new Error('Storage bucket not found. Please create an "avatars" bucket in your Supabase dashboard with public access.');
-        }
-        throw error;
+        if (deleteError) throw deleteError;
       }
+
+      // Upload new avatar
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(filePath);
+
+      // Update user record with the full storage path
+      const { error: updateError } = await supabase
+        .from("users")
+        .update({ 
+          profile_pic_url: `avatars/${filePath}`,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", userID);
+
+      if (updateError) throw updateError;
+
+      setAvatarUrl(publicUrl);
+      setAvatar(`avatars/${filePath}`);
+      dispatch(updateUserInfo({ profilePic: publicUrl }));
     } catch (error: any) {
       console.error("Error updating avatar:", error);
-      alert(error.message || "Failed to update avatar. Please try again.");
+      setError(error.message || "Failed to update avatar");
+    } finally {
+      setIsUploading(false);
     }
   };
 
   const handleRemoveAvatar = async () => {
     try {
+      setError(null);
       if (avatar) {
         const { error: deleteError } = await supabase.storage
           .from("avatars")
@@ -223,27 +237,47 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
 
         const { error: updateError } = await supabase
           .from("users")
-          .update({ profile_pic_url: null })
-          .eq("user_id", userID);
+          .update({ 
+            profile_pic_url: null,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", userID);
 
         if (updateError) throw updateError;
 
         setAvatar("");
         setAvatarUrl("");
+        dispatch(updateUserInfo({ profilePic: "" }));
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error removing avatar:", error);
+      setError(error.message || "Failed to remove avatar");
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <div className="animate-spin h-8 w-8 border-2 border-secondary rounded-full border-t-transparent"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col w-full gap-6">
+      {error && (
+        <div className="w-full p-4 mb-4 text-sm text-danger-500 bg-danger-50 rounded-lg">
+          {error}
+        </div>
+      )}
       <div className="flex w-full justify-between items-center gap-3">
         <div className="flex flex-col items-center gap-2">
           <Avatar
             name={profileTitle[0]?.toUpperCase() || "@"}
             className="w-24 h-24 text-3xl text-white bg-black mb-2"
             src={avatarUrl}
+            isBordered
+            showFallback
           />
           <input
             id="avatar-upload"
@@ -262,16 +296,19 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
               const fileInput = document.getElementById("avatar-upload");
               if (fileInput) fileInput.click();
             }}
+            isLoading={isUploading}
+            isDisabled={isUploading}
           >
-            <i className="ri-upload-2-line mr-2"></i>
-            Upload New Photo
+            {!isUploading && <i className="ri-upload-2-line mr-2"></i>}
+            {isUploading ? "Uploading..." : "Upload New Photo"}
           </Button>
           <Button
-            color="secondary"
+            color="danger"
             variant="light"
             className="shadow-md"
             radius="full"
             onPress={handleRemoveAvatar}
+            isDisabled={!avatar || isUploading}
           >
             <i className="ri-delete-bin-line mr-2"></i>
             Remove Photo
@@ -295,10 +332,13 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
           value={bio} 
           onChange={handleBioChange}
           minRows={3}
+          maxRows={5}
           variant="bordered"
+          placeholder="Tell people about yourself..."
           classNames={{
             input: "text-lg",
-            label: "text-default-500"
+            label: "text-default-500",
+            base: "w-full"
           }}
         />
       </div>

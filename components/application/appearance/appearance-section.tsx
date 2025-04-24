@@ -16,13 +16,19 @@ export const AppearanceSection: React.FC<AppearanceProps> = ({
   profileData,
 }) => {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
+
   return (
-    <div className="flex gap-8 w-full md:w-2/3 box-content px-4 h-[93vh] justify-center">
+    <div className="flex gap-8 w-full md:w-2/3 box-content px-4 min-h-[93vh] justify-center">
       <div className="flex flex-col w-full box-content px-4 justify-start items-center mt-28">
-        <div className="px-0 w-full md:max-w-xl mb-4">
-          <span className="text-2xl font-bold">Profile</span>
+        <div className="px-0 w-full md:max-w-xl mb-8">
+          <h1 className="text-2xl font-bold mb-2">Profile</h1>
+          <p className="text-default-500">
+            Customize your profile appearance and information
+          </p>
         </div>
-        <AppearanceCard userID={userID} />
+        <div className="w-full md:max-w-xl bg-white rounded-xl p-6 shadow-sm">
+          <AppearanceCard userID={userID} />
+        </div>
       </div>
       <div className="hidden md:inline">
         <Divider orientation="vertical" />

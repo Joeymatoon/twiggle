@@ -11,9 +11,10 @@ import { useState, useEffect } from "react";
 export interface ProfileDataProps {
   bio: string;
   avatar: string;
-  profileTitle: string;
   avatarUrl: string;
+  profileTitle: string;
   username: string;
+  userID: string;
 }
 
 export default function AdminPage() {
@@ -25,6 +26,7 @@ export default function AdminPage() {
     avatarUrl: "",
     profileTitle: "",
     username: "",
+    userID: "",
   });
   const [userID, setUserID] = useState("");
   const [content, setContent] = useState<HeaderCardProps[]>([]);

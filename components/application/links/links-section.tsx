@@ -32,75 +32,130 @@ export const LinksSection: React.FC<LinksProps> = ({
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const user = useSelector((state: RootState) => state.user);
   const supabase = createClient();
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchHeaders = async () => {
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from("headers")
+          .select("*")
+          .eq("user_id", userID)
+          .order("position", { ascending: true });
+
+        if (error) throw error;
+
+        const formattedHeaders = data.map(header => ({
+          id: header.id,
+          header: header.title || "",
+          active: header.active || false,
+          link: header.is_link || false,
+          position: header.position
+        }));
+
+        setContentState(formattedHeaders);
+      } catch (error) {
+        console.error("Error fetching headers:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (userID) {
+      fetchHeaders();
+    }
+  }, [userID, supabase, setContentState]);
 
   const uploadHeader = async (id: string, index: number, isLink: boolean) => {
-    const { error } = await supabase.from("headers").insert({
-      id: id,
-      user_id: userID,
-      title: "",
-      position: index,
-      is_link: isLink,  // Changed from isLink to is_link to match DB column
-      active: false
-    });
-  
-    if (error) {
-      console.error("Error uploading header:", error);
+    try {
+      const { error } = await supabase.from("headers").insert({
+        id: id,
+        user_id: userID,
+        title: "",
+        position: index,
+        is_link: isLink,
+        active: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+    
+      if (error) {
+        console.error("Error uploading header:", error);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error("Error in uploadHeader:", error);
       return false;
     }
-    return true;
   };
   
   const handleAddHeader = async () => {
-    const id = v4();
-    const newIndex = content.length;
-    const success = await uploadHeader(id, newIndex, false);
-    
-    if (success) {
-      const newHeader: HeaderCardProps = {
-        header: "",
-        id: id,
-        active: false,
-        link: false,
-        position: newIndex
-      };
-      setContentState((prevContents) => [...prevContents, newHeader]);
-      dispatch(addUserHeader([...user.header, newHeader]));
+    try {
+      const id = v4();
+      const newIndex = content.length;
+      const success = await uploadHeader(id, newIndex, false);
+      
+      if (success) {
+        const newHeader: HeaderCardProps = {
+          header: "",
+          id: id,
+          active: false,
+          link: false,
+          position: newIndex
+        };
+        setContentState(prev => [...prev, newHeader]);
+        dispatch(addUserHeader([...content, newHeader]));
+      }
+    } catch (error) {
+      console.error("Error in handleAddHeader:", error);
     }
   };
   
   const handleAddLink = async () => {
-    const id = v4();
-    const newIndex = content.length;
-    const success = await uploadHeader(id, newIndex, true);
-    
-    if (success) {
-      const newLink: HeaderCardProps = {
-        header: "",
-        id: id,
-        active: false,
-        link: true,
-        position: newIndex
-      };
-      setContentState((prevContents) => [...prevContents, newLink]);
-      dispatch(addUserLink([...user.header, newLink]));
+    try {
+      const id = v4();
+      const newIndex = content.length;
+      const success = await uploadHeader(id, newIndex, true);
+      
+      if (success) {
+        const newLink: HeaderCardProps = {
+          header: "",
+          id: id,
+          active: false,
+          link: true,
+          position: newIndex
+        };
+        setContentState(prev => [...prev, newLink]);
+        dispatch(addUserLink([...content, newLink]));
+      }
+    } catch (error) {
+      console.error("Error in handleAddLink:", error);
     }
   };
 
   const deleteHeader = async (id: string) => {
-    const { error } = await supabase
-      .from("headers")
-      .delete()
-      .eq("id", id);  // Changed from header_id to id
-    if (error) {
-      console.error("Error deleting header", error);
-    } else {
-      console.log("Header deleted successfully");
+    try {
+      const { error } = await supabase
+        .from("headers")
+        .delete()
+        .eq("id", id);
+
+      if (error) {
+        console.error("Error deleting header:", error);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error("Error in deleteHeader:", error);
+      return false;
     }
   };
 
-  // Update the handleSort function to use the correct field name
   const handleSort = (result: DropResult) => {
     if (!result.destination) return;
+    
     const items = Array.from(content);
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
@@ -112,47 +167,49 @@ export const LinksSection: React.FC<LinksProps> = ({
     }));
     
     setContentState(updatedItems);
-  
-    const updatedPositions = updatedItems.map((item) => ({
-      id: item.id,
-      position: item.position,
-      updated_at: new Date().toISOString()
-    }));
-  
-    sendPositionsToBackend(updatedPositions);
+    sendPositionsToBackend(updatedItems);
   };
   
-  const sendPositionsToBackend = async (
-    positions: { id: string; position: number }[]
-  ) => {
+  const sendPositionsToBackend = async (items: HeaderCardProps[]) => {
     try {
-      const { error } = await supabase.from("headers").upsert(
-        positions.map(pos => ({
-          id: pos.id,
-          position: pos.position,
-          updated_at: new Date().toISOString()
-        }))
-      );
+      const updates = items.map(item => ({
+        id: item.id,
+        position: item.position,
+        updated_at: new Date().toISOString()
+      }));
+
+      const { error } = await supabase
+        .from("headers")
+        .upsert(updates);
+
       if (error) throw error;
     } catch (error) {
       console.error("Error updating positions:", error);
     }
   };
 
-  const handleDelete = (id: string) => {
-    setContentState((prevContents) =>
-      prevContents.filter((item) => item.id !== id)
-    );
-    deleteHeader(id);
+  const handleDelete = async (id: string) => {
+    const success = await deleteHeader(id);
+    if (success) {
+      setContentState(prev => prev.filter(item => item.id !== id));
+    }
   };
 
   const handleHeaderCardStateChange = (updatedState: HeaderCardProps) => {
-    setContentState((prevContents) =>
-      prevContents.map((item) =>
+    setContentState(prev =>
+      prev.map(item =>
         item.id === updatedState.id ? { ...item, ...updatedState } : item
       )
     );
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin h-8 w-8 border-2 border-secondary rounded-full border-t-transparent"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex gap-8 w-full md:w-2/3 box-content px-4 h-[93vh] justify-center">
@@ -163,7 +220,7 @@ export const LinksSection: React.FC<LinksProps> = ({
           radius="full"
           size="lg"
           fullWidth
-          className=" px-4 py-6 w-full md:max-w-xl mb-8"
+          className="px-4 py-6 w-full md:max-w-xl mb-8"
           onPress={handleAddLink}
         >
           Add Link
@@ -183,7 +240,7 @@ export const LinksSection: React.FC<LinksProps> = ({
         <DragDropContext onDragEnd={handleSort}>
           <div className="px-0 w-full md:max-w-xl mt-8 overflow-y-scroll h-[60vh] md:h-[48vh] flex flex-col gap-3">
             <Droppable droppableId="droppable">
-              {(provided, snapshot) => (
+              {(provided) => (
                 <div
                   {...provided.droppableProps}
                   ref={provided.innerRef}
@@ -195,7 +252,7 @@ export const LinksSection: React.FC<LinksProps> = ({
                       draggableId={item.id}
                       index={index}
                     >
-                      {(provided, snapshot) => (
+                      {(provided) => (
                         <div
                           ref={provided.innerRef}
                           {...provided.draggableProps}
