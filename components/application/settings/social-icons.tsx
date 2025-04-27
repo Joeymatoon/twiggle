@@ -107,9 +107,31 @@ export const SocialIcons: React.FC = () => {
       if (authError) throw authError;
       if (!user) throw new Error("User not authenticated");
 
-      // Validate URL format
-      if (!newLink.trim().startsWith('http://') && !newLink.trim().startsWith('https://')) {
-        throw new Error("Please enter a valid URL starting with http:// or https://");
+      let validatedUrl = newLink.trim();
+
+      // Special handling for different platforms
+      switch (iconContent.id) {
+        case 'threads':
+          if (!validatedUrl.startsWith('@')) {
+            validatedUrl = `@${validatedUrl}`;
+          }
+          break;
+        case 'email':
+          if (!validatedUrl.includes('@')) {
+            throw new Error("Please enter a valid email address");
+          }
+          validatedUrl = `mailto:${validatedUrl}`;
+          break;
+        case 'whatsapp':
+          if (!validatedUrl.startsWith('+')) {
+            validatedUrl = `+${validatedUrl}`;
+          }
+          validatedUrl = `https://wa.me/${validatedUrl.replace(/\D/g, '')}`;
+          break;
+        default:
+          if (!validatedUrl.startsWith('http://') && !validatedUrl.startsWith('https://')) {
+            validatedUrl = `https://${validatedUrl}`;
+          }
       }
 
       const { data, error } = await supabase
@@ -117,7 +139,7 @@ export const SocialIcons: React.FC = () => {
         .insert([
           {
             platform: iconContent.id,
-            url: newLink.trim(),
+            url: validatedUrl,
             user_id: user.id
           },
         ])

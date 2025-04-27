@@ -40,9 +40,10 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
           setAvatar(data.profile_pic_url || "");
           
           if (data.profile_pic_url) {
+            const storagePath = data.profile_pic_url.replace('avatars/', '');
             const { data: { publicUrl } } = supabase.storage
               .from("avatars")
-              .getPublicUrl(data.profile_pic_url);
+              .getPublicUrl(storagePath);
             setAvatarUrl(publicUrl);
             dispatch(updateUserInfo({
               bio: data.bio || "",
@@ -86,9 +87,10 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
           setAvatar(newData.profile_pic_url || "");
           
           if (newData.profile_pic_url) {
+            const storagePath = newData.profile_pic_url.replace('avatars/', '');
             const { data: { publicUrl } } = supabase.storage
               .from("avatars")
-              .getPublicUrl(newData.profile_pic_url);
+              .getPublicUrl(storagePath);
             setAvatarUrl(publicUrl);
             dispatch(updateUserInfo({
               bio: newData.bio || "",
@@ -183,7 +185,7 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
       if (avatar) {
         const { error: deleteError } = await supabase.storage
           .from("avatars")
-          .remove([avatar]);
+          .remove([avatar.replace('avatars/', '')]);
         
         if (deleteError) throw deleteError;
       }
@@ -231,7 +233,7 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
       if (avatar) {
         const { error: deleteError } = await supabase.storage
           .from("avatars")
-          .remove([avatar]);
+          .remove([avatar.replace('avatars/', '')]);
         
         if (deleteError) throw deleteError;
 

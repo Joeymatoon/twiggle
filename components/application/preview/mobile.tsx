@@ -6,6 +6,10 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/components";
 import { socials } from "@/config/social-icons";
 import Image from "next/image";
+import { useSelector, useDispatch } from "react-redux";
+import { updateUserInfo } from "@/utils/state/actions/userActions";
+import { AlertCircle, User } from "lucide-react";
+import { RootState } from "@/utils/state/reducers/reducers";
 
 interface Props {
   isOpen: boolean;
@@ -13,6 +17,21 @@ interface Props {
   content: HeaderCardProps[];
   profileData: ProfileDataProps;
   userID: string;
+}
+
+interface SocialLink {
+  id: string;
+  platform: string;
+  url: string;
+  user_id: string;
+}
+
+interface UserData {
+  id: string;
+  name: string;
+  bio: string;
+  avatarUrl: string;
+  socialLinks: SocialLink[];
 }
 
 const validateUrl = (url: string) => {
@@ -52,19 +71,6 @@ interface SocialLinkData {
   created_at: string;
 }
 
-interface UserData {
-  user_id: string;
-  email: string;
-  username: string;
-  fullname: string;
-  category: string;
-  subcategory: string;
-  profile_pic_url: string | null;
-  bio: string;
-  created_at: string;
-  updated_at: string;
-}
-
 export const PreviewMobile: React.FC<Props> = ({
   isOpen,
   onOpenChange,
@@ -72,79 +78,71 @@ export const PreviewMobile: React.FC<Props> = ({
   profileData,
   userID,
 }) => {
-  const [socialLinks, setSocialLinks] = useState<SocialLinkData[]>([]);
+  const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isContentLoading, setIsContentLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
+  const user = useSelector((state: RootState) => state.user);
+  const dispatch = useDispatch();
 
+  // Subscribe to real-time updates for user data
   useEffect(() => {
-    const fetchUserData = async () => {
-      if (!userID) return; // Don't fetch if userID is empty
-      
-      try {
-        const { data, error } = await supabase
-          .from("users")
-          .select("*")
-          .eq("user_id", userID)
-          .single();
+    const channel = supabase
+      .channel('user_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'users',
+          filter: `id=eq.${userID}`,
+        },
+        (payload) => {
+          const newData = payload.new as { id: string; fullname: string; bio: string; profile_pic_url: string };
+          if (newData) {
+            const { data: { publicUrl } } = supabase.storage
+              .from("avatars")
+              .getPublicUrl(newData.profile_pic_url?.replace('avatars/', '') || '');
+            
+            setUserData({
+              id: newData.id,
+              name: newData.fullname || '',
+              bio: newData.bio || '',
+              avatarUrl: publicUrl,
+              socialLinks: socialLinks
+            });
+          }
+        }
+      )
+      .subscribe();
 
-        if (error) throw error;
-        setUserData(data);
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-        setError("Failed to load user data. Please try again.");
-      }
+    return () => {
+      supabase.removeChannel(channel);
     };
+  }, [supabase, userID, socialLinks]);
 
-    fetchUserData();
-  }, [userID, supabase]);
-
+  // Subscribe to real-time updates for social links
   useEffect(() => {
-    const fetchSocialLinks = async () => {
-      if (!userID) return; // Don't fetch if userID is empty
-      
-      try {
-        setIsLoading(true);
-        setError(null);
-        const { data, error } = await supabase
-          .from("social_links")
-          .select("*")
-          .eq("user_id", userID)
-          .order("created_at", { ascending: true });
-
-        if (error) throw error;
-        setSocialLinks(data || []);
-      } catch (error) {
-        console.error("Error fetching social links:", error);
-        setError("Failed to load social links. Please try again.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchSocialLinks();
-
-    // Subscribe to real-time updates
     const channel = supabase
       .channel('social_links_changes')
       .on(
-        'postgres_changes' as any,
+        'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'social_links',
-          filter: `user_id=eq.${userID}`
+          filter: `user_id=eq.${userID}`,
         },
-        (payload: { eventType: string; new: SocialLinkData; old: { id: string } }) => {
+        (payload) => {
           if (payload.eventType === 'INSERT') {
-            setSocialLinks(prev => [...prev, payload.new]);
+            setSocialLinks(prev => [...prev, payload.new as SocialLink]);
           } else if (payload.eventType === 'DELETE') {
             setSocialLinks(prev => prev.filter(link => link.id !== payload.old.id));
           } else if (payload.eventType === 'UPDATE') {
             setSocialLinks(prev => prev.map(link => 
-              link.id === payload.new.id ? payload.new : link
+              link.id === payload.new.id ? payload.new as SocialLink : link
             ));
           }
         }
@@ -154,6 +152,100 @@ export const PreviewMobile: React.FC<Props> = ({
     return () => {
       supabase.removeChannel(channel);
     };
+  }, [supabase, userID]);
+
+  // Subscribe to real-time updates for headers/links
+  useEffect(() => {
+    const channel = supabase
+      .channel('headers_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'headers',
+          filter: `user_id=eq.${userID}`,
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newHeader: HeaderCardProps = {
+              id: payload.new.id,
+              header: payload.new.title || '',
+              active: payload.new.active || false,
+              link: payload.new.is_link || false,
+              position: payload.new.position
+            };
+            dispatch(updateUserInfo({ header: [...content, newHeader] }));
+          } else if (payload.eventType === 'DELETE') {
+            dispatch(updateUserInfo({ 
+              header: content.filter(item => item.id !== payload.old.id)
+            }));
+          } else if (payload.eventType === 'UPDATE') {
+            dispatch(updateUserInfo({
+              header: content.map(item => 
+                item.id === payload.new.id 
+                  ? { ...item, ...payload.new } 
+                  : item
+              )
+            }));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase, userID, content, dispatch]);
+
+  // Initial data fetch
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // Fetch user data
+        const { data: userData, error: userError } = await supabase
+          .from("users")
+          .select()
+          .eq("id", userID)
+          .single();
+
+        if (userError) throw userError;
+
+        // Fetch social links
+        const { data: linksData, error: linksError } = await supabase
+          .from("social_links")
+          .select("*")
+          .eq("user_id", userID);
+
+        if (linksError) throw linksError;
+
+        // Get avatar URL
+        const { data: { publicUrl } } = supabase.storage
+          .from("avatars")
+          .getPublicUrl(userData.profile_pic_url?.replace('avatars/', '') || '');
+
+        setUserData({
+          id: userData.id,
+          name: userData.fullname || '',
+          bio: userData.bio || '',
+          avatarUrl: publicUrl,
+          socialLinks: linksData || []
+        });
+
+        setSocialLinks(linksData || []);
+      } catch (error: any) {
+        console.error("Error fetching data:", error);
+        setError(error.message || "Failed to load data");
+      } finally {
+        setIsLoading(false);
+        setIsContentLoading(false);
+      }
+    };
+
+    fetchData();
   }, [supabase, userID]);
 
   useEffect(() => {
@@ -172,6 +264,36 @@ export const PreviewMobile: React.FC<Props> = ({
     position: item.position
   }));
 
+  // Update userData.socialLinks whenever socialLinks changes
+  useEffect(() => {
+    if (userData) {
+      setUserData(prev => prev ? { ...prev, socialLinks } : null);
+    }
+  }, [socialLinks]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-4 text-center">
+        <AlertCircle className="h-8 w-8 text-red-500 mb-2" />
+        <p className="text-red-500 font-medium">{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 px-4 py-2 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
+
   return (
     <Modal isOpen={isOpen} onOpenChange={onOpenChange} size="full">
       <ModalContent>
@@ -181,10 +303,10 @@ export const PreviewMobile: React.FC<Props> = ({
               <div className="flex flex-col items-center w-full min-h-screen bg-gradient-to-b from-default-50 to-default-100">
                 {/* Profile Section */}
                 <div className="w-full flex flex-col items-center pt-8 pb-4 animate-fade-in">
-                  {userData?.profile_pic_url && (
+                  {userData?.avatarUrl && (
                     <div className="w-24 h-24 rounded-full overflow-hidden mb-4 transform hover:scale-105 transition-transform duration-300">
                       <Image
-                        src={userData.profile_pic_url}
+                        src={userData.avatarUrl}
                         alt="Profile"
                         width={96}
                         height={96}
@@ -192,7 +314,7 @@ export const PreviewMobile: React.FC<Props> = ({
                       />
                     </div>
                   )}
-                  <h1 className="text-xl font-bold mb-2 animate-slide-up">{userData?.fullname || 'Add your name'}</h1>
+                  <h1 className="text-xl font-bold mb-2 animate-slide-up">{userData?.name || 'Add your name'}</h1>
                   <p className="text-default-600 text-center px-4 mb-4 animate-slide-up delay-100">{userData?.bio || 'Add your bio'}</p>
                 </div>
 
