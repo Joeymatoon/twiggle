@@ -1,4 +1,4 @@
-import { Button, Card, CardBody, CardFooter, CardHeader } from "@nextui-org/react";
+import { Button, Card, CardBody, CardFooter, CardHeader, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from "@nextui-org/react";
 import { useState } from "react";
 import Image from "next/image";
 
@@ -66,7 +66,7 @@ const staticItems: MarketplaceItem[] = [
     description: "A clean and modern template for personal blogs and writers.",
     price: 17,
     category: "Templates",
-    image_url: "https://images.unsplash.com/photo-1465101178521-c1a9136a3b99?auto=format&fit=crop&w=600&q=80",
+    image_url: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=600&q=80",
   },
   {
     id: "8",
@@ -90,7 +90,7 @@ const staticItems: MarketplaceItem[] = [
     description: "A stylish pack of line icons for modern interfaces.",
     price: 8,
     category: "Icons",
-    image_url: "https://images.unsplash.com/photo-1465101178521-c1a9136a3b99?auto=format&fit=crop&w=600&q=80",
+    image_url: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=600&q=80",
   },
   {
     id: "11",
@@ -131,13 +131,74 @@ const categories = [
   ...Array.from(new Set(staticItems.map((item) => item.category))),
 ];
 
+const MarketplaceItemModal: React.FC<{
+  item: MarketplaceItem;
+  isOpen: boolean;
+  onClose: () => void;
+}> = ({ item, isOpen, onClose }) => {
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} size="2xl">
+      <ModalContent>
+        {(onClose) => (
+          <>
+            <ModalHeader className="flex flex-col gap-1">
+              <span className="text-xs font-semibold text-default-400 uppercase tracking-wider">
+                {item.category}
+              </span>
+              <h2 className="text-2xl font-bold">{item.title}</h2>
+            </ModalHeader>
+            <ModalBody>
+              <div className="relative w-full h-64 rounded-lg overflow-hidden mb-4">
+                <Image
+                  src={item.image_url}
+                  alt={item.title}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+              <p className="text-default-600 text-lg">{item.description}</p>
+              <div className="mt-4">
+                <h3 className="text-lg font-semibold mb-2">Features</h3>
+                <ul className="list-disc list-inside space-y-2 text-default-600">
+                  <li>High-quality design assets</li>
+                  <li>Fully customizable components</li>
+                  <li>Responsive layouts</li>
+                  <li>Regular updates and support</li>
+                </ul>
+              </div>
+            </ModalBody>
+            <ModalFooter className="flex justify-between items-center">
+              <span className="text-2xl font-bold text-secondary">${item.price}</span>
+              <div className="flex gap-2">
+                <Button color="default" variant="light" onPress={onClose}>
+                  Close
+                </Button>
+                <Button color="secondary" onPress={onClose}>
+                  Purchase
+                </Button>
+              </div>
+            </ModalFooter>
+          </>
+        )}
+      </ModalContent>
+    </Modal>
+  );
+};
+
 export const MarketplaceSection: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedItem, setSelectedItem] = useState<MarketplaceItem | null>(null);
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   const filteredItems =
     selectedCategory === "All"
       ? staticItems
       : staticItems.filter((item) => item.category === selectedCategory);
+
+  const handleViewDetails = (item: MarketplaceItem) => {
+    setSelectedItem(item);
+    onOpen();
+  };
 
   return (
     <div className="flex flex-col w-full p-8">
@@ -179,13 +240,20 @@ export const MarketplaceSection: React.FC = () => {
             </CardBody>
             <CardFooter className="flex justify-between items-center p-4 pt-0">
               <span className="text-lg font-bold text-secondary">${item.price}</span>
-              <Button color="secondary" radius="full" size="sm">
+              <Button color="secondary" radius="full" size="sm" onPress={() => handleViewDetails(item)}>
                 View Details
               </Button>
             </CardFooter>
           </Card>
         ))}
       </div>
+      {selectedItem && (
+        <MarketplaceItemModal
+          item={selectedItem}
+          isOpen={isOpen}
+          onClose={onClose}
+        />
+      )}
     </div>
   );
 }; 
