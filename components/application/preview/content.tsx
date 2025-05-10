@@ -5,20 +5,24 @@ import NextLink from "next/link";
 import axios from "axios";
 import { ProfileDataProps } from "@/pages/admin";
 import { createClient } from "@/utils/supabase/components";
+import { templates, TemplateType } from "@/config/templates";
 
 // Remove unused createClient import and fetchHeaders function since we're getting content from props
 
 interface PreviewContentProps {
   profileData: ProfileDataProps;
   content: HeaderCardProps[];
+  template?: string;
 }
 
 export const PreviewContent: React.FC<PreviewContentProps> = ({
   profileData,
   content,
+  template = "default"
 }) => {
   const [userData, setUserData] = useState<any>(null);
   const supabase = createClient();
+  const currentTemplate = templates[template] || templates.default;
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -47,11 +51,11 @@ export const PreviewContent: React.FC<PreviewContentProps> = ({
   };
 
   return (
-    <div className="flex flex-col items-center w-full min-h-screen bg-gradient-to-b from-default-50 to-default-100">
+    <div className={`flex flex-col items-center w-full min-h-screen ${currentTemplate.styles.background}`}>
       {/* Profile Section */}
       <div className="w-full flex flex-col items-center pt-8 pb-4 animate-fade-in">
         {profileData.avatarUrl && (
-          <div className="w-24 h-24 rounded-full overflow-hidden mb-4 transform hover:scale-105 transition-transform duration-300">
+          <div className={currentTemplate.styles.avatarStyle}>
             <img
               src={profileData.avatarUrl}
               alt="Profile"
@@ -59,8 +63,8 @@ export const PreviewContent: React.FC<PreviewContentProps> = ({
             />
           </div>
         )}
-        <h1 className="text-xl font-bold mb-2 animate-slide-up">{profileData.profileTitle || 'Add your name'}</h1>
-        <p className="text-default-600 text-center px-4 mb-4 animate-slide-up delay-100 max-w-md">
+        <h1 className={currentTemplate.styles.headerStyle}>{profileData.profileTitle || 'Add your name'}</h1>
+        <p className={currentTemplate.styles.bioStyle}>
           {userData?.bio || profileData.bio || 'Add your bio'}
         </p>
       </div>
@@ -71,13 +75,13 @@ export const PreviewContent: React.FC<PreviewContentProps> = ({
           <div key={item.id}>
             {item.link ? (
               <a
-                href={item.header}
+                href={validateUrl(item.header)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block w-full p-4 bg-white hover:bg-gray-50 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-[1.02]"
+                className={`block w-full ${currentTemplate.styles.cardStyle}`}
                 style={{ animationDelay: `${index * 100}ms` }}
               >
-                <div className="flex items-center justify-between">
+                <div className={currentTemplate.styles.linkStyle}>
                   <div className="flex items-center gap-3">
                     <i className="ri-link text-default-400" />
                     <span className="font-medium">{item.header || 'Add a link'}</span>
@@ -86,7 +90,7 @@ export const PreviewContent: React.FC<PreviewContentProps> = ({
                 </div>
               </a>
             ) : (
-              <div className="w-full flex items-center justify-center p-4">
+              <div className={`w-full flex items-center justify-center p-4 ${currentTemplate.styles.cardStyle}`}>
                 <span className="font-medium">{item.header || 'Add a header'}</span>
               </div>
             )}
@@ -95,7 +99,7 @@ export const PreviewContent: React.FC<PreviewContentProps> = ({
       </div>
 
       {/* Footer */}
-      <div className="w-full px-4 py-6 text-center text-default-500 text-sm animate-fade-in delay-500">
+      <div className={`w-full px-4 py-6 text-center ${currentTemplate.styles.footerStyle} animate-fade-in delay-500`}>
         <p>Powered by Twiggle</p>
       </div>
     </div>

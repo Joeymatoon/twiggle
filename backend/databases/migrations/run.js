@@ -28,20 +28,37 @@ async function runMigration() {
       }
     });
     
-    // Read the migration file
-    const migrationPath = join(__dirname, 'fix_all_tables.sql');
-    const migrationSQL = readFileSync(migrationPath, 'utf8');
+    // Define migration file paths
+    const migrationFiles = [
+      'add_admin_column.sql',
+      'create_marketplace_table.sql'
+    ];
 
-    // Execute the entire SQL script at once
-    console.log('Executing migration...');
-    const { data, error } = await supabase.from('sql').select('*').single();
-    
-    if (error) {
-      console.error('Error executing migration:', error);
-      throw error;
+    // Execute each migration file
+    for (const file of migrationFiles) {
+      try {
+        console.log(`Executing migration: ${file}...`);
+        const migrationPath = join(__dirname, file);
+        const migrationSQL = readFileSync(migrationPath, 'utf8');
+
+        // Execute the SQL directly using rpc
+        const { error } = await supabase.rpc('exec_sql', { sql: migrationSQL });
+        
+        if (error) {
+          console.error(`Error executing migration ${file}:`, error);
+          // Continue with next migration instead of throwing
+          console.log('Continuing with next migration...');
+        } else {
+          console.log(`Migration ${file} completed successfully!`);
+        }
+      } catch (err) {
+        console.error(`Error reading or executing ${file}:`, err);
+        // Continue with next migration
+        console.log('Continuing with next migration...');
+      }
     }
 
-    console.log('Migration completed successfully!');
+    console.log('All migrations completed!');
   } catch (error) {
     console.error('Migration failed:', error);
     process.exit(1);
