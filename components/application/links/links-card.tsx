@@ -1,6 +1,6 @@
 import { updateUserInfo } from "@/utils/state/actions/userActions";
 import { createClient } from "@/utils/supabase/components";
-import { Input, Switch } from "@nextui-org/react";
+import { Input, Switch, Card, CardBody } from "@nextui-org/react";
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
@@ -111,54 +111,69 @@ export const HeaderCard: React.FC<{
   };
 
   return (
-    <div className="md:max-w-xl md:p-6 box-content h-auto min-h-20 border-1 flex justify-between items-center rounded-3xl">
-      <div id="drag-icon" className="px-4">
-        <i className="ri-draggable"></i>
-      </div>
-      <div className="flex-1 mx-4 py-4">
-        {state.link && metadata && !isLoading && (
-          <div className="mb-2 text-sm text-default-500 truncate">
-            {metadata}
+    <Card className="w-full shadow-lg hover:shadow-xl transition-shadow duration-300">
+      <CardBody className="p-4">
+        <div className="flex items-center gap-4">
+          <div id="drag-icon" className="text-default-400 cursor-move">
+            <i className="ri-drag-move-line text-xl"></i>
           </div>
-        )}
-        {isLoading && (
-          <div className="mb-2 flex items-center gap-2">
-            <div className="animate-spin h-4 w-4 border-2 border-secondary rounded-full border-t-transparent"></div>
-            <span className="text-sm text-default-500">Loading metadata...</span>
+          
+          <div className="flex-1">
+            {state.link && metadata && !isLoading && (
+              <div className="mb-2 text-sm text-default-500 truncate flex items-center gap-2">
+                <i className="ri-link text-default-400"></i>
+                {metadata}
+              </div>
+            )}
+            {isLoading && (
+              <div className="mb-2 flex items-center gap-2">
+                <div className="animate-spin h-4 w-4 border-2 border-secondary rounded-full border-t-transparent"></div>
+                <span className="text-sm text-default-500">Loading metadata...</span>
+              </div>
+            )}
+            <Input
+              placeholder={state.link ? "Enter URL" : "Enter header text"}
+              value={state.header}
+              variant="bordered"
+              classNames={{
+                inputWrapper: [
+                  "bg-transparent hover:!bg-transparent focus-within:!bg-transparent",
+                  "shadow-none",
+                ],
+                innerWrapper: "bg-transparent",
+                input: "text-lg",
+              }}
+              startContent={
+                state.link ? (
+                  <i className="ri-link text-default-400"></i>
+                ) : (
+                  <i className="ri-text text-default-400"></i>
+                )
+              }
+              onChange={handleChange}
+              onFocus={() => setIsReadOnly(false)}
+              onBlur={() => setIsReadOnly(true)}
+            />
           </div>
-        )}
-        <Input
-          placeholder={state.link ? "Enter URL" : "Enter header text"}
-          value={state.header}
-          className="text-default-500"
-          classNames={{
-            inputWrapper: [
-              "bg-transparent hover:!bg-transparent focus-within:!bg-transparent",
-              "shadow-none",
-            ],
-            innerWrapper: "bg-transparent",
-            input: "max-w-full",
-          }}
-          onChange={handleChange}
-          onFocus={() => setIsReadOnly(false)}
-          onBlur={() => setIsReadOnly(true)}
-        />
-      </div>
-      <div className="flex flex-col justify-center gap-5 items-center px-4">
-        <Switch 
-          isSelected={state.active} 
-          size="sm" 
-          onChange={handleActive}
-          aria-label={state.active ? "Deactivate" : "Activate"}
-        />
-        <button
-          onClick={onDelete}
-          className="text-danger hover:text-danger-400 transition-colors"
-          aria-label="Delete"
-        >
-          <i className="ri-delete-bin-line text-xl"></i>
-        </button>
-      </div>
-    </div>
+
+          <div className="flex items-center gap-4">
+            <Switch 
+              isSelected={state.active} 
+              size="sm"
+              color="secondary"
+              onChange={handleActive}
+              aria-label={state.active ? "Deactivate" : "Activate"}
+            />
+            <button
+              onClick={onDelete}
+              className="text-danger hover:text-danger-400 transition-colors p-2 rounded-full hover:bg-danger-50"
+              aria-label="Delete"
+            >
+              <i className="ri-delete-bin-line text-xl"></i>
+            </button>
+          </div>
+        </div>
+      </CardBody>
+    </Card>
   );
 };

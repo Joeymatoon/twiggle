@@ -9,7 +9,6 @@ interface MarketplaceItem {
   id: string;
   title: string;
   description: string;
-  price: number;
   category: string;
   image_url: string;
   is_active?: boolean;
@@ -60,14 +59,13 @@ const MarketplaceItemModal: React.FC<{
                 </ul>
               </div>
             </ModalBody>
-            <ModalFooter className="flex justify-between items-center">
-              <span className="text-2xl font-bold text-secondary">${item.price}</span>
+            <ModalFooter className="flex justify-end items-center">
               <div className="flex gap-2">
                 <Button color="default" variant="light" onPress={onClose}>
                   Close
                 </Button>
                 <Button color="secondary" onPress={onClose}>
-                  Purchase
+                  Download
                 </Button>
               </div>
             </ModalFooter>
@@ -88,7 +86,6 @@ const AdminItemModal: React.FC<{
 }> = ({ isOpen, onClose, onSave, currentItem, isLoading }) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [price, setPrice] = useState("");
   const [category, setCategory] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [errors, setErrors] = useState<{[key: string]: string}>({});
@@ -98,13 +95,11 @@ const AdminItemModal: React.FC<{
     if (currentItem) {
       setTitle(currentItem.title);
       setDescription(currentItem.description);
-      setPrice(currentItem.price.toString());
       setCategory(currentItem.category);
       setImageUrl(currentItem.image_url);
     } else {
       setTitle("");
       setDescription("");
-      setPrice("");
       setCategory("");
       setImageUrl("");
     }
@@ -116,13 +111,6 @@ const AdminItemModal: React.FC<{
     
     if (!title.trim()) newErrors.title = "Title is required";
     if (!description.trim()) newErrors.description = "Description is required";
-    
-    if (!price.trim()) {
-      newErrors.price = "Price is required";
-    } else if (isNaN(Number(price)) || Number(price) < 0) {
-      newErrors.price = "Price must be a valid number";
-    }
-    
     if (!category.trim()) newErrors.category = "Category is required";
     if (!imageUrl.trim()) newErrors.imageUrl = "Image URL is required";
     
@@ -137,7 +125,6 @@ const AdminItemModal: React.FC<{
       id: currentItem?.id || uuidv4(),
       title,
       description,
-      price: Number(price),
       category,
       image_url: imageUrl,
       is_active: currentItem?.is_active !== undefined ? currentItem.is_active : true
@@ -172,17 +159,6 @@ const AdminItemModal: React.FC<{
                   onChange={(e) => setDescription(e.target.value)}
                   isInvalid={!!errors.description}
                   errorMessage={errors.description}
-                />
-                
-                <Input
-                  label="Price ($)"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  isInvalid={!!errors.price}
-                  errorMessage={errors.price}
                 />
                 
                 <Select
@@ -437,8 +413,7 @@ export const MarketplaceSection: React.FC<MarketplaceProps> = ({ userID }) => {
                   </div>
                   <p className="text-default-600 text-sm mb-2 min-h-[48px]">{item.description}</p>
                 </CardBody>
-                <CardFooter className="flex justify-between items-center p-4 pt-0">
-                  <span className="text-lg font-bold text-secondary">${item.price}</span>
+                <CardFooter className="flex justify-end items-center p-4 pt-0">
                   <div className="flex gap-2">
                     {isAdmin && (
                       <>
@@ -492,7 +467,6 @@ const staticItems: MarketplaceItem[] = [
     id: "1",
     title: "Modern Portfolio Template",
     description: "A sleek, responsive portfolio template for developers and designers.",
-    price: 19,
     category: "Templates",
     image_url: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=600&q=80",
   },
@@ -500,7 +474,6 @@ const staticItems: MarketplaceItem[] = [
     id: "2",
     title: "Minimal Icon Pack",
     description: "A set of 100+ minimal icons for web and mobile projects.",
-    price: 9,
     category: "Icons",
     image_url: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80",
   },
@@ -508,7 +481,6 @@ const staticItems: MarketplaceItem[] = [
     id: "3",
     title: "Analytics Widget",
     description: "A plug-and-play analytics widget for your dashboard.",
-    price: 29,
     category: "Widgets",
     image_url: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=600&q=80",
   },
@@ -516,7 +488,6 @@ const staticItems: MarketplaceItem[] = [
     id: "4",
     title: "E-commerce UI Kit",
     description: "A complete UI kit for building modern e-commerce apps.",
-    price: 39,
     category: "Templates",
     image_url: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80",
   },
@@ -524,7 +495,6 @@ const staticItems: MarketplaceItem[] = [
     id: "5",
     title: "Colorful Illustration Pack",
     description: "Hand-drawn illustrations to make your site pop.",
-    price: 15,
     category: "Illustrations",
     image_url: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=600&q=80",
   },
@@ -532,7 +502,6 @@ const staticItems: MarketplaceItem[] = [
     id: "6",
     title: "Finance Dashboard Widget",
     description: "A ready-to-use finance dashboard widget.",
-    price: 25,
     category: "Widgets",
     image_url: "https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=600&q=80",
   },
@@ -540,7 +509,6 @@ const staticItems: MarketplaceItem[] = [
     id: "7",
     title: "Personal Blog Template",
     description: "A clean and modern template for personal blogs and writers.",
-    price: 17,
     category: "Templates",
     image_url: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=600&q=80",
   },
@@ -548,7 +516,6 @@ const staticItems: MarketplaceItem[] = [
     id: "8",
     title: "Abstract Illustration Set",
     description: "A collection of abstract illustrations for creative projects.",
-    price: 12,
     category: "Illustrations",
     image_url: "https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=600&q=80",
   },
@@ -556,7 +523,6 @@ const staticItems: MarketplaceItem[] = [
     id: "9",
     title: "Weather Widget",
     description: "A beautiful weather widget for dashboards and apps.",
-    price: 14,
     category: "Widgets",
     image_url: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=600&q=80",
   },
@@ -564,7 +530,6 @@ const staticItems: MarketplaceItem[] = [
     id: "10",
     title: "Line Icon Pack",
     description: "A stylish pack of line icons for modern interfaces.",
-    price: 8,
     category: "Icons",
     image_url: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=600&q=80",
   },
@@ -572,7 +537,6 @@ const staticItems: MarketplaceItem[] = [
     id: "11",
     title: "Business Mockup Kit",
     description: "Professional mockups for business presentations and portfolios.",
-    price: 22,
     category: "Mockups",
     image_url: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=600&q=80",
   },
@@ -580,7 +544,6 @@ const staticItems: MarketplaceItem[] = [
     id: "12",
     title: "Creative Backgrounds",
     description: "A set of vibrant backgrounds for websites and apps.",
-    price: 10,
     category: "Backgrounds",
     image_url: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80",
   },
@@ -588,7 +551,6 @@ const staticItems: MarketplaceItem[] = [
     id: "13",
     title: "Resume Template",
     description: "A modern resume template to help you stand out.",
-    price: 11,
     category: "Templates",
     image_url: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80",
   },
@@ -596,8 +558,7 @@ const staticItems: MarketplaceItem[] = [
     id: "14",
     title: "Social Media Icon Set",
     description: "Essential icons for all major social media platforms.",
-    price: 7,
     category: "Icons",
     image_url: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80",
-  },
+  }
 ]; 

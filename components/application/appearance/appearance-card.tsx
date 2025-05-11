@@ -1,6 +1,6 @@
 // components/AppearanceCard.tsx
 import { useEffect, useState } from "react";
-import { Avatar, Button, Input, Textarea } from "@nextui-org/react";
+import { Avatar, Button, Input, Textarea, Card, CardBody, CardHeader, Divider } from "@nextui-org/react";
 import { useDispatch } from "react-redux";
 import { updateUserInfo } from "@/utils/state/actions/userActions";
 import { createClient } from "@/utils/supabase/components";
@@ -259,91 +259,135 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[400px]">
-        <div className="animate-spin h-8 w-8 border-2 border-secondary rounded-full border-t-transparent"></div>
-      </div>
+      <Card className="w-full p-6">
+        <CardBody className="flex justify-center items-center min-h-[400px]">
+          <div className="flex flex-col items-center gap-4">
+            <div className="animate-spin h-12 w-12 border-4 border-secondary rounded-full border-t-transparent"></div>
+            <p className="text-default-500">Loading profile data...</p>
+          </div>
+        </CardBody>
+      </Card>
     );
   }
 
   return (
-    <div className="flex flex-col w-full gap-6">
-      {error && (
-        <div className="w-full p-4 mb-4 text-sm text-danger-500 bg-danger-50 rounded-lg">
-          {error}
-        </div>
-      )}
-      <div className="flex w-full justify-between items-center gap-3">
-        <div className="flex flex-col items-center gap-2">
-          <Avatar
-            name={profileTitle[0]?.toUpperCase() || "@"}
-            className="w-24 h-24 text-3xl text-white bg-black mb-2"
-            src={avatarUrl}
-            isBordered
-            showFallback
-          />
-          <input
-            id="avatar-upload"
-            type="file"
-            accept=".jpg,.jpeg,.png"
-            onChange={handleAvatarChange}
-            className="hidden"
-          />
-        </div>
-        <div className="flex flex-col w-full gap-3">
-          <Button
-            color="secondary"
-            radius="full"
-            className="w-full"
-            onPress={() => {
-              const fileInput = document.getElementById("avatar-upload");
-              if (fileInput) fileInput.click();
-            }}
-            isLoading={isUploading}
-            isDisabled={isUploading}
-          >
-            {!isUploading && <i className="ri-upload-2-line mr-2"></i>}
-            {isUploading ? "Uploading..." : "Upload New Photo"}
-          </Button>
-          <Button
-            color="danger"
-            variant="light"
-            className="shadow-md"
-            radius="full"
-            onPress={handleRemoveAvatar}
-            isDisabled={!avatar || isUploading}
-          >
-            <i className="ri-delete-bin-line mr-2"></i>
-            Remove Photo
-          </Button>
-        </div>
-      </div>
+    <Card className="w-full">
+      <CardHeader className="flex flex-col gap-1 px-6 py-4">
+        <h2 className="text-2xl font-bold">Appearance</h2>
+        <p className="text-default-500">Customize how your profile looks to others</p>
+      </CardHeader>
+      <Divider />
+      <CardBody className="p-6">
+        {error && (
+          <div className="w-full p-4 mb-6 text-sm text-danger-500 bg-danger-50 rounded-lg border border-danger-200">
+            <div className="flex items-center gap-2">
+              <i className="ri-error-warning-line text-lg"></i>
+              <span>{error}</span>
+            </div>
+          </div>
+        )}
 
-      <div className="w-full flex flex-col gap-3 mt-9 mb-3">
-        <Input
-          label="Profile Title"
-          value={profileTitle}
-          onChange={handleProfileTitleChange}
-          variant="bordered"
-          classNames={{
-            input: "text-lg",
-            label: "text-default-500"
-          }}
-        />
-        <Textarea 
-          label="Bio" 
-          value={bio} 
-          onChange={handleBioChange}
-          minRows={3}
-          maxRows={5}
-          variant="bordered"
-          placeholder="Tell people about yourself..."
-          classNames={{
-            input: "text-lg",
-            label: "text-default-500",
-            base: "w-full"
-          }}
-        />
-      </div>
-    </div>
+        <div className="flex flex-col gap-8">
+          {/* Avatar Section */}
+          <div className="flex flex-col md:flex-row gap-6 items-start">
+            <div className="flex flex-col items-center gap-4">
+              <div className="relative group">
+                <Avatar
+                  name={profileTitle[0]?.toUpperCase() || "@"}
+                  className="w-32 h-32 text-4xl text-white bg-black"
+                  src={avatarUrl}
+                  isBordered
+                  showFallback
+                />
+                <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                  <i className="ri-camera-line text-2xl text-white"></i>
+                </div>
+              </div>
+              <input
+                id="avatar-upload"
+                type="file"
+                accept=".jpg,.jpeg,.png"
+                onChange={handleAvatarChange}
+                className="hidden"
+              />
+            </div>
+            <div className="flex flex-col gap-3 flex-1">
+              <div className="flex flex-col gap-1">
+                <h3 className="text-lg font-semibold">Profile Picture</h3>
+                <p className="text-default-500 text-sm">
+                  Upload a profile picture to personalize your account. We recommend using a square image.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  color="secondary"
+                  radius="full"
+                  className="min-w-[200px]"
+                  onPress={() => {
+                    const fileInput = document.getElementById("avatar-upload");
+                    if (fileInput) fileInput.click();
+                  }}
+                  isLoading={isUploading}
+                  isDisabled={isUploading}
+                  startContent={!isUploading && <i className="ri-upload-2-line"></i>}
+                >
+                  {isUploading ? "Uploading..." : "Upload New Photo"}
+                </Button>
+                <Button
+                  color="danger"
+                  variant="light"
+                  radius="full"
+                  onPress={handleRemoveAvatar}
+                  isDisabled={!avatar || isUploading}
+                  startContent={<i className="ri-delete-bin-line"></i>}
+                >
+                  Remove Photo
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <Divider />
+
+          {/* Profile Information Section */}
+          <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-1">
+              <h3 className="text-lg font-semibold">Profile Information</h3>
+              <p className="text-default-500 text-sm">
+                Update your profile title and bio to let others know more about you.
+              </p>
+            </div>
+            <div className="flex flex-col gap-4">
+              <Input
+                label="Profile Title"
+                value={profileTitle}
+                onChange={handleProfileTitleChange}
+                variant="bordered"
+                classNames={{
+                  input: "text-lg",
+                  label: "text-default-500"
+                }}
+                startContent={<i className="ri-user-line text-default-400"></i>}
+              />
+              <Textarea 
+                label="Bio" 
+                value={bio} 
+                onChange={handleBioChange}
+                minRows={3}
+                maxRows={5}
+                variant="bordered"
+                placeholder="Tell people about yourself..."
+                classNames={{
+                  input: "text-lg",
+                  label: "text-default-500",
+                  base: "w-full"
+                }}
+                startContent={<i className="ri-file-text-line text-default-400"></i>}
+              />
+            </div>
+          </div>
+        </div>
+      </CardBody>
+    </Card>
   );
 };

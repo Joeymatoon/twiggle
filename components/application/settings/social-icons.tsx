@@ -25,24 +25,35 @@ interface SocialLink {
   id: string;
   platform: string;
   url: string;
+  user_id: string;
 }
 
-export const SocialIcons: React.FC = () => {
+interface SocialIconsProps {
+  userID?: string;
+}
+
+export const SocialIcons: React.FC<SocialIconsProps> = ({ userID }) => {
   const [activeIconSection, setActiveIconSection] = useState<"first" | "second">("first");
   const [iconContent, setIconContent] = useState<SocialIcon | null>(null);
   const [modalHeader, setModalHeader] = useState<string>("Add icon");
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
   const [newLink, setNewLink] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const supabase = createClient();
   const dispatch = useDispatch();
 
   useEffect(() => {
+    if (!userID) return;
+
     const fetchSocialLinks = async () => {
       try {
         const { data, error } = await supabase
           .from("social_links")
           .select("*")
+          .eq("user_id", userID)
           .order("created_at", { ascending: true });
 
         if (error) throw error;
@@ -63,6 +74,7 @@ export const SocialIcons: React.FC = () => {
           event: '*',
           schema: 'public',
           table: 'social_links',
+          filter: `user_id=eq.${userID}`,
         },
         (payload) => {
           if (payload.eventType === 'INSERT') {
@@ -81,7 +93,7 @@ export const SocialIcons: React.FC = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase]);
+  }, [supabase, userID]);
 
   const handleIconSectionChange = (
     section: "first" | "second",
@@ -99,13 +111,12 @@ export const SocialIcons: React.FC = () => {
   };
 
   const handleAddLink = async () => {
-    if (!iconContent || !newLink.trim()) return;
+    if (!iconContent || !newLink.trim() || !userID) return;
 
     try {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
-      if (authError) throw authError;
-      if (!user) throw new Error("User not authenticated");
+      setIsLoading(true);
+      setError(null);
+      setSuccess(null);
 
       let validatedUrl = newLink.trim();
 
@@ -140,112 +151,62 @@ export const SocialIcons: React.FC = () => {
           {
             platform: iconContent.id,
             url: validatedUrl,
-            user_id: user.id
+            user_id: userID
           },
         ])
         .select();
 
-      if (error) {
-        console.error("Database error:", error);
-        throw new Error(error.message || "Failed to add social link");
-      }
+      if (error) throw error;
 
-      // Update local state immediately for better UX
-      setSocialLinks(prev => [...prev, ...(data || [])]);
-
-      // Update Redux store
-      dispatch(updateUserInfo({
-        socialLinks: [...socialLinks, ...(data || [])]
-      }));
-
-      // Show success message
-      showToast("Social link added successfully!", "success");
-
-      // Reset form
-      setNewLink("");
-      handleIconSectionChange("first");
+      setSuccess("Social link added successfully!");
       onOpenChange();
+      handleIconSectionChange("first");
     } catch (error: any) {
       console.error("Error adding social link:", error);
-      showToast(error.message || "Failed to add social link. Please try again.", "error");
+      setError(error.message || "Failed to add social link");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleRemoveLink = async (id: string) => {
     try {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
-      if (authError) throw authError;
-      if (!user) throw new Error("User not authenticated");
+      setIsLoading(true);
+      setError(null);
+      setSuccess(null);
 
       const { error } = await supabase
         .from("social_links")
         .delete()
-        .eq("id", id)
-        .eq("user_id", user.id);
+        .eq("id", id);
 
-      if (error) {
-        console.error("Database error:", error);
-        throw new Error(error.message || "Failed to remove social link");
-      }
+      if (error) throw error;
 
-      // Update local state immediately
-      setSocialLinks(prev => prev.filter(link => link.id !== id));
-
-      // Update Redux store
-      dispatch(updateUserInfo({
-        socialLinks: socialLinks.filter(link => link.id !== id)
-      }));
-
-      // Show success message
-      showToast("Social link removed successfully!", "success");
+      setSuccess("Social link removed successfully!");
     } catch (error: any) {
       console.error("Error removing social link:", error);
-      showToast(error.message || "Failed to remove social link. Please try again.", "error");
-    }
-  };
-
-  // Add loading state
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Add error state
-  const [error, setError] = useState<string | null>(null);
-
-  // Add success state
-  const [success, setSuccess] = useState<string | null>(null);
-
-  // Add toast notifications
-  const showToast = (message: string, type: 'success' | 'error') => {
-    if (type === 'success') {
-      setSuccess(message);
-      setTimeout(() => setSuccess(null), 3000);
-    } else {
-      setError(message);
-      setTimeout(() => setError(null), 3000);
+      setError(error.message || "Failed to remove social link");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="w-full md:max-w-xl p-6 border-1 flex flex-col justify-center items-start rounded-3xl">
-      <span className="font-bold">Add your socials</span>
-      <span className="text-default-500 mt-2 mb-8">
-        Add icons linking to your social profiles, email, and more
-      </span>
-      
+    <div className="w-full flex flex-col gap-6">
       {/* Display success/error messages */}
       {success && (
-        <div className="w-full mb-4 p-3 bg-success-100 text-success-600 rounded-lg">
+        <div className="w-full p-3 bg-success-100 text-success-600 rounded-lg">
           {success}
         </div>
       )}
       {error && (
-        <div className="w-full mb-4 p-3 bg-danger-100 text-danger-600 rounded-lg">
+        <div className="w-full p-3 bg-danger-100 text-danger-600 rounded-lg">
           {error}
         </div>
       )}
       
       {/* Display existing social links */}
-      <div className="w-full flex flex-wrap gap-4 mb-4">
+      <div className="w-full flex flex-wrap gap-4">
         {socialLinks.map((link) => (
           <div key={link.id} className="flex items-center gap-2 bg-default-100 p-2 rounded-full">
             <i className={`${socials[link.platform]?.icon} text-xl`}></i>
@@ -351,6 +312,7 @@ export const SocialIcons: React.FC = () => {
                     color="secondary" 
                     className="my-4"
                     onPress={handleAddLink}
+                    isLoading={isLoading}
                   >
                     Add to Twiggle
                   </Button>

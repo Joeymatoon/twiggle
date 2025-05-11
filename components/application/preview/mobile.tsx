@@ -330,6 +330,7 @@ export const PreviewMobile: React.FC<Props> = ({
                     </div>
                   </div>
                 ) : (
+                  <>
                   <div className="w-full flex flex-wrap gap-4 justify-center px-4 mb-4 animate-slide-up delay-200">
                     {socialLinks.map((link, index) => (
                       <a
@@ -340,10 +341,16 @@ export const PreviewMobile: React.FC<Props> = ({
                         className="flex items-center gap-2 bg-white p-3 rounded-full hover:bg-default-100 transition-all duration-300 transform hover:scale-110 shadow-sm hover:shadow-md"
                         style={{ animationDelay: `${index * 100}ms` }}
                       >
-                        <i className={`${socials[link.platform]?.icon} text-xl`}></i>
+                        <i className={`${socials[link.platform]?.icon || 'ri-question-line'} text-xl`}></i>
                       </a>
                     ))}
                   </div>
+                  {process.env.NODE_ENV === 'development' && (
+                    <pre className="w-full bg-black text-green-400 text-xs p-2 rounded mb-2 overflow-x-auto">
+                      {JSON.stringify(socialLinks, null, 2)}
+                    </pre>
+                  )}
+                  </>
                 )}
 
                 {/* Links Section */}

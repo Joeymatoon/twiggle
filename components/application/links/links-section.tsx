@@ -1,4 +1,4 @@
-import { Button, Divider, useDisclosure } from "@nextui-org/react";
+import { Button, Divider, useDisclosure, Card, CardBody, CardHeader } from "@nextui-org/react";
 import { useEffect, useState } from "react";
 import { HeaderCard, HeaderCardProps } from "./links-card";
 import {
@@ -35,7 +35,9 @@ export const LinksSection: React.FC<LinksProps> = ({
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const fetchHeaders = async () => {
+    const fetchHeaderData = async () => {
+      if (!userID) return;
+      
       try {
         setIsLoading(true);
         const { data, error } = await supabase
@@ -51,10 +53,11 @@ export const LinksSection: React.FC<LinksProps> = ({
           header: header.title || "",
           active: header.active || false,
           link: header.is_link || false,
-          position: header.position
+          position: header.position || 0
         }));
 
         setContentState(formattedHeaders);
+        dispatch(addUserHeader(formattedHeaders));
       } catch (error) {
         console.error("Error fetching headers:", error);
       } finally {
@@ -62,10 +65,47 @@ export const LinksSection: React.FC<LinksProps> = ({
       }
     };
 
-    if (userID) {
-      fetchHeaders();
-    }
-  }, [userID, supabase, setContentState]);
+    fetchHeaderData();
+
+    // Subscribe to real-time updates
+    const channel = supabase
+      .channel('header_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'headers',
+          filter: `user_id=eq.${userID}`,
+        },
+        async () => {
+          // Refetch data when changes occur
+          const { data, error } = await supabase
+            .from("headers")
+            .select("*")
+            .eq("user_id", userID)
+            .order("position", { ascending: true });
+
+          if (!error && data) {
+            const formattedHeaders = data.map(header => ({
+              id: header.id,
+              header: header.title || "",
+              active: header.active || false,
+              link: header.is_link || false,
+              position: header.position || 0
+            }));
+
+            setContentState(formattedHeaders);
+            dispatch(addUserHeader(formattedHeaders));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase, userID, dispatch, setContentState]);
 
   const uploadHeader = async (id: string, index: number, isLink: boolean) => {
     try {
@@ -183,6 +223,8 @@ export const LinksSection: React.FC<LinksProps> = ({
         .upsert(updates);
 
       if (error) throw error;
+      
+      dispatch(addUserHeader(items));
     } catch (error) {
       console.error("Error updating positions:", error);
     }
@@ -191,7 +233,9 @@ export const LinksSection: React.FC<LinksProps> = ({
   const handleDelete = async (id: string) => {
     const success = await deleteHeader(id);
     if (success) {
-      setContentState(prev => prev.filter(item => item.id !== id));
+      const updatedContent = content.filter(item => item.id !== id);
+      setContentState(updatedContent);
+      dispatch(addUserHeader(updatedContent));
     }
   };
 
@@ -205,80 +249,98 @@ export const LinksSection: React.FC<LinksProps> = ({
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin h-8 w-8 border-2 border-secondary rounded-full border-t-transparent"></div>
-      </div>
+      <Card className="w-full">
+        <CardBody className="flex justify-center items-center min-h-[400px]">
+          <div className="flex flex-col items-center gap-4">
+            <div className="animate-spin h-12 w-12 border-4 border-secondary rounded-full border-t-transparent"></div>
+            <p className="text-default-500">Loading your links...</p>
+          </div>
+        </CardBody>
+      </Card>
     );
   }
 
   return (
     <div className="flex gap-8 w-full md:w-2/3 box-content px-4 h-[93vh] justify-center">
       <div className="flex flex-col w-full box-content px-4 justify-start items-center mt-20">
-        <Button
-          startContent={<i className="ri-add-fill !text-xl"></i>}
-          color="secondary"
-          radius="full"
-          size="lg"
-          fullWidth
-          className="px-4 py-6 w-full md:max-w-xl mb-8"
-          onPress={handleAddLink}
-        >
-          Add Link
-        </Button>
-        <div className="px-0 w-full md:max-w-xl">
-          <Button
-            startContent={<i className="ri-ai-generate !text-xl"></i>}
-            size="sm"
-            radius="full"
-            variant="bordered"
-            onPress={handleAddHeader}
-            className="!w-auto px-4 py-1 box-content text-sm border-1"
-          >
-            Add header
-          </Button>
-        </div>
-        <DragDropContext onDragEnd={handleSort}>
-          <div className="px-0 w-full md:max-w-xl mt-8 overflow-y-scroll h-[60vh] md:h-[48vh] flex flex-col gap-3">
-            <Droppable droppableId="droppable">
-              {(provided) => (
-                <div
-                  {...provided.droppableProps}
-                  ref={provided.innerRef}
-                  className="flex flex-col w-full box-content justify-start items-center"
-                >
-                  {content.map((item, index) => (
-                    <Draggable
-                      key={item.id}
-                      draggableId={item.id}
-                      index={index}
+        <Card className="w-full md:max-w-xl mb-8">
+          <CardBody className="p-6">
+            <div className="flex flex-col gap-4">
+              <Button
+                startContent={<i className="ri-add-fill !text-xl"></i>}
+                color="secondary"
+                radius="full"
+                size="lg"
+                fullWidth
+                className="px-4 py-6"
+                onPress={handleAddLink}
+              >
+                Add Link
+              </Button>
+              <Button
+                startContent={<i className="ri-ai-generate !text-xl"></i>}
+                size="sm"
+                radius="full"
+                variant="bordered"
+                onPress={handleAddHeader}
+                className="w-full"
+              >
+                Add Header
+              </Button>
+            </div>
+          </CardBody>
+        </Card>
+
+        <Card className="w-full md:max-w-xl">
+          <CardHeader className="px-6 py-4">
+            <h2 className="text-xl font-semibold">Your Links</h2>
+          </CardHeader>
+          <CardBody className="p-6">
+            <DragDropContext onDragEnd={handleSort}>
+              <div className="overflow-y-auto max-h-[48vh] flex flex-col gap-4">
+                <Droppable droppableId="droppable">
+                  {(provided) => (
+                    <div
+                      {...provided.droppableProps}
+                      ref={provided.innerRef}
+                      className="flex flex-col gap-4"
                     >
-                      {(provided) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          {...provided.dragHandleProps}
-                          className="mb-4 box-content px-0 w-full md:max-w-xl"
+                      {content.map((item, index) => (
+                        <Draggable
+                          key={item.id}
+                          draggableId={item.id}
+                          index={index}
                         >
-                          <HeaderCard
-                            key={`header-${item.id}`}
-                            state={item}
-                            setState={handleHeaderCardStateChange}
-                            onDelete={() => handleDelete(item.id)}
-                          />
-                        </div>
-                      )}
-                    </Draggable>
-                  ))}
-                  {provided.placeholder}
-                </div>
-              )}
-            </Droppable>
-          </div>
-        </DragDropContext>
+                          {(provided) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}
+                            >
+                              <HeaderCard
+                                key={`header-${item.id}`}
+                                state={item}
+                                setState={handleHeaderCardStateChange}
+                                onDelete={() => handleDelete(item.id)}
+                              />
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+              </div>
+            </DragDropContext>
+          </CardBody>
+        </Card>
       </div>
+
       <div className="hidden md:inline">
         <Divider orientation="vertical" />
       </div>
+
       <div className="fixed bottom-12 md:hidden">
         <Button
           radius="full"

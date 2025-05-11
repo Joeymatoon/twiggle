@@ -3,7 +3,6 @@ CREATE TABLE IF NOT EXISTS "marketplace_items" (
   "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   "title" TEXT NOT NULL,
   "description" TEXT NOT NULL,
-  "price" NUMERIC(10, 2) NOT NULL,
   "category" TEXT NOT NULL,
   "image_url" TEXT NOT NULL,
   "is_active" BOOLEAN DEFAULT TRUE,
