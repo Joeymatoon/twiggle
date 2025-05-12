@@ -1,6 +1,6 @@
 import { Button, Divider, useDisclosure } from "@nextui-org/react";
 import { AppearanceCard } from "./appearance-card";
-import { PreviewMobile } from "../preview/mobile";
+import MobilePreview from "../preview/mobile";
 import { HeaderCardProps } from "../links/links-card";
 import { ProfileDataProps } from "@/pages/admin";
 
@@ -44,12 +44,14 @@ export const AppearanceSection: React.FC<AppearanceProps> = ({
         >
           <span className="font-bold">Preview</span>
         </Button>
-        <PreviewMobile
+        <MobilePreview
           isOpen={isOpen}
-          onOpenChange={onOpenChange}
-          content={content}
-          profileData={profileData}
-          userID={userID}
+          onClose={onOpenChange}
+          profileTitle={profileData.profileTitle}
+          bio={profileData.bio}
+          image={profileData.avatarUrl}
+          links={content.filter(item => item.link && item.header).map(item => item.header)}
+          darkMode={true}
         />
       </div>
     </div>

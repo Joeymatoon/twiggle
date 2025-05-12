@@ -1,4 +1,4 @@
-import { Button, Card, CardBody, CardFooter, CardHeader, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure, Input, Textarea, Select, SelectItem } from "@nextui-org/react";
+import { Button, Card, CardBody, CardFooter, CardHeader, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure, Input, Textarea, Select, SelectItem, CheckboxGroup, Checkbox } from "@nextui-org/react";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { createClient } from "@/utils/supabase/components";
@@ -216,7 +216,8 @@ interface MarketplaceProps {
 }
 
 export const MarketplaceSection: React.FC<MarketplaceProps> = ({ userID }) => {
-  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(["All"]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [selectedItem, setSelectedItem] = useState<MarketplaceItem | null>(null);
   const [items, setItems] = useState<MarketplaceItem[]>(staticItems);
   const [categories, setCategories] = useState<string[]>(["All"]);
@@ -276,11 +277,18 @@ export const MarketplaceSection: React.FC<MarketplaceProps> = ({ userID }) => {
     fetchData();
   }, [supabase, userID]);
   
-  const filteredItems =
-    selectedCategory === "All"
-      ? items
-      : items.filter((item) => item.category === selectedCategory);
-      
+  // Filtering logic
+  const filteredItems = items.filter((item) => {
+    // Category filter
+    const inCategory =
+      selectedCategories.includes("All") || selectedCategories.includes(item.category);
+    // Search filter
+    const inSearch =
+      item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.description.toLowerCase().includes(searchTerm.toLowerCase());
+    return inCategory && inSearch;
+  });
+  
   const handleViewDetails = (item: MarketplaceItem) => {
     setSelectedItem(item);
     onOpen();
@@ -361,29 +369,41 @@ export const MarketplaceSection: React.FC<MarketplaceProps> = ({ userID }) => {
     <div className="flex flex-col w-full p-8">
       <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
         <h1 className="text-3xl font-bold">Marketplace</h1>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
+          <Input
+            type="text"
+            placeholder="Search by title or description..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full md:w-72"
+            startContent={<i className="ri-search-line text-default-400"></i>}
+          />
+          <CheckboxGroup
+            label="Categories"
+            orientation="horizontal"
+            value={selectedCategories}
+            onValueChange={(vals) =>
+              vals.length === 0 ? setSelectedCategories(["All"]) : setSelectedCategories(vals.filter((v) => v !== "All"))
+            }
+            className="flex flex-wrap gap-2"
+          >
+            <Checkbox value="All">All</Checkbox>
+            {categories.filter((cat) => cat !== "All").map((cat) => (
+              <Checkbox key={cat} value={cat} className="capitalize">
+                {cat}
+              </Checkbox>
+            ))}
+          </CheckboxGroup>
           {isAdmin && (
             <Button 
               color="secondary" 
               startContent={<i className="ri-add-line"></i>}
               onPress={handleAddNewItem}
+              className="self-end"
             >
               Add New Item
             </Button>
           )}
-          <div className="flex gap-2 flex-wrap">
-            {categories.map((cat) => (
-              <Button
-                key={cat}
-                color={selectedCategory === cat ? "secondary" : "default"}
-                variant={selectedCategory === cat ? "solid" : "bordered"}
-                onPress={() => setSelectedCategory(cat)}
-                className="capitalize"
-              >
-                {cat}
-              </Button>
-            ))}
-          </div>
         </div>
       </div>
       

@@ -12,7 +12,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { addUserHeader, addUserLink } from "@/utils/state/actions/userActions";
 import { RootState } from "@/utils/state/reducers/reducers";
 import { createClient } from "@/utils/supabase/components";
-import { PreviewMobile } from "../preview/mobile";
+import MobilePreview from "../preview/mobile";
 import { ProfileDataProps } from "@/pages/admin";
 
 interface LinksProps {
@@ -254,7 +254,7 @@ export const LinksSection: React.FC<LinksProps> = ({
           <div className="flex flex-col items-center gap-4">
             <div className="animate-spin h-12 w-12 border-4 border-secondary rounded-full border-t-transparent"></div>
             <p className="text-default-500">Loading your links...</p>
-          </div>
+      </div>
         </CardBody>
       </Card>
     );
@@ -266,28 +266,28 @@ export const LinksSection: React.FC<LinksProps> = ({
         <Card className="w-full md:max-w-xl mb-8">
           <CardBody className="p-6">
             <div className="flex flex-col gap-4">
-              <Button
-                startContent={<i className="ri-add-fill !text-xl"></i>}
-                color="secondary"
-                radius="full"
-                size="lg"
-                fullWidth
+        <Button
+          startContent={<i className="ri-add-fill !text-xl"></i>}
+          color="secondary"
+          radius="full"
+          size="lg"
+          fullWidth
                 className="px-4 py-6"
-                onPress={handleAddLink}
-              >
-                Add Link
-              </Button>
-              <Button
-                startContent={<i className="ri-ai-generate !text-xl"></i>}
-                size="sm"
-                radius="full"
-                variant="bordered"
-                onPress={handleAddHeader}
+          onPress={handleAddLink}
+        >
+          Add Link
+        </Button>
+          <Button
+            startContent={<i className="ri-ai-generate !text-xl"></i>}
+            size="sm"
+            radius="full"
+            variant="bordered"
+            onPress={handleAddHeader}
                 className="w-full"
-              >
+          >
                 Add Header
-              </Button>
-            </div>
+          </Button>
+        </div>
           </CardBody>
         </Card>
 
@@ -296,43 +296,43 @@ export const LinksSection: React.FC<LinksProps> = ({
             <h2 className="text-xl font-semibold">Your Links</h2>
           </CardHeader>
           <CardBody className="p-6">
-            <DragDropContext onDragEnd={handleSort}>
+        <DragDropContext onDragEnd={handleSort}>
               <div className="overflow-y-auto max-h-[48vh] flex flex-col gap-4">
-                <Droppable droppableId="droppable">
-                  {(provided) => (
-                    <div
-                      {...provided.droppableProps}
-                      ref={provided.innerRef}
+            <Droppable droppableId="droppable">
+              {(provided) => (
+                <div
+                  {...provided.droppableProps}
+                  ref={provided.innerRef}
                       className="flex flex-col gap-4"
+                >
+                  {content.map((item, index) => (
+                    <Draggable
+                      key={item.id}
+                      draggableId={item.id}
+                      index={index}
                     >
-                      {content.map((item, index) => (
-                        <Draggable
-                          key={item.id}
-                          draggableId={item.id}
-                          index={index}
+                      {(provided) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
                         >
-                          {(provided) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                            >
-                              <HeaderCard
-                                key={`header-${item.id}`}
-                                state={item}
-                                setState={handleHeaderCardStateChange}
-                                onDelete={() => handleDelete(item.id)}
-                              />
-                            </div>
-                          )}
-                        </Draggable>
-                      ))}
-                      {provided.placeholder}
-                    </div>
-                  )}
-                </Droppable>
-              </div>
-            </DragDropContext>
+                          <HeaderCard
+                            key={`header-${item.id}`}
+                            state={item}
+                            setState={handleHeaderCardStateChange}
+                            onDelete={() => handleDelete(item.id)}
+                          />
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </div>
+        </DragDropContext>
           </CardBody>
         </Card>
       </div>
@@ -352,12 +352,14 @@ export const LinksSection: React.FC<LinksProps> = ({
         >
           <span className="font-bold">Preview</span>
         </Button>
-        <PreviewMobile
+        <MobilePreview
           isOpen={isOpen}
-          onOpenChange={onOpenChange}
-          content={content}
-          profileData={profileData}
-          userID={userID}
+          onClose={onOpenChange}
+          profileTitle={profileData.profileTitle}
+          bio={profileData.bio}
+          image={profileData.avatarUrl}
+          links={content.filter(item => item.link && item.header).map(item => item.header)}
+          darkMode={true}
         />
       </div>
     </div>

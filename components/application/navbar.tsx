@@ -119,18 +119,10 @@ export const Navbar: React.FC<NavbarProps> = ({
         justify="start"
       >
         <NavbarBrand className="gap-3 max-w-fit">
-          <NextLink
-            className="flex justify-start items-center gap-1"
-            href="/admin"
-          >
-            <Image
-              src={`/images/logo-alt-${
-                theme === "dark" ? "white" : "black"
-              }.svg`}
-              width={50}
-              height={50}
-              alt="twiggle logo"
-            />
+          <NextLink className="flex justify-start items-center gap-1" href="/admin">
+            <span className={`text-3xl font-extrabold bg-gradient-to-r from-[#844ABE] to-[#9B6FD3] bg-clip-text text-transparent hover:from-[#6B3B98] hover:to-[#844ABE] transition-all duration-300 tracking-tight drop-shadow-sm`}>
+              Twiggle
+            </span>
           </NextLink>
         </NavbarBrand>
         <NavbarItem>
@@ -304,17 +296,20 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       <NavbarContent className="sm:hidden items-center" justify="center">
         <NavbarBrand className="gap-3 max-w-fit">
-          <NextLink
-            className="flex justify-start items-center gap-1"
-            href="/admin"
-          >
+          <NextLink className="flex justify-start items-center gap-1" href="/admin">
             <Image
-              src={`/images/logo-alt-${
-                theme === "dark" ? "white" : "black"
-              }.svg`}
+              src={`/images/logo-alt-${theme === "dark" ? "white" : "black"}.svg`}
               width={50}
               height={50}
-              alt="twiggle logo"
+              alt="Twiggle logo"
+              className="md:hidden"
+            />
+            <Image
+              src={`/images/twiggle-logo-${theme === "dark" ? "white" : "black"}.png`}
+              width={200}
+              height={50}
+              alt="Twiggle logo"
+              className="hidden md:inline"
             />
           </NextLink>
         </NavbarBrand>
