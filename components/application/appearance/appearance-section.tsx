@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button, Divider, useDisclosure } from "@nextui-org/react";
 import { AppearanceCard } from "./appearance-card";
 import MobilePreview from "../preview/mobile";
@@ -17,6 +18,11 @@ export const AppearanceSection: React.FC<AppearanceProps> = ({
 }) => {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
+  // LIFTED STATE
+  const [profileTitle, setProfileTitle] = useState(profileData.profileTitle || "");
+  const [bio, setBio] = useState(profileData.bio || "");
+  const [avatarUrl, setAvatarUrl] = useState(profileData.avatarUrl || "");
+
   return (
     <div className="flex gap-8 w-full md:w-2/3 box-content px-4 min-h-[93vh] justify-center">
       <div className="flex flex-col w-full box-content px-4 justify-start items-center mt-28">
@@ -27,7 +33,15 @@ export const AppearanceSection: React.FC<AppearanceProps> = ({
           </p>
         </div>
         <div className="w-full md:max-w-xl bg-white rounded-xl p-6 shadow-sm">
-          <AppearanceCard userID={userID} />
+          <AppearanceCard
+            userID={userID}
+            profileTitle={profileTitle}
+            setProfileTitle={setProfileTitle}
+            bio={bio}
+            setBio={setBio}
+            avatarUrl={avatarUrl}
+            setAvatarUrl={setAvatarUrl}
+          />
         </div>
       </div>
       <div className="hidden md:inline">
@@ -47,9 +61,9 @@ export const AppearanceSection: React.FC<AppearanceProps> = ({
         <MobilePreview
           isOpen={isOpen}
           onClose={onOpenChange}
-          profileTitle={profileData.profileTitle}
-          bio={profileData.bio}
-          image={profileData.avatarUrl}
+          profileTitle={profileTitle}
+          bio={bio}
+          image={avatarUrl}
           links={content.filter(item => item.link && item.header).map(item => item.header)}
           darkMode={true}
         />

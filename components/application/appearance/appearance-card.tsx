@@ -38,7 +38,6 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
           setBio(data.bio || "");
           setProfileTitle(data.fullname || "");
           setAvatar(data.profile_pic_url || "");
-          
           if (data.profile_pic_url) {
             const storagePath = data.profile_pic_url.replace('avatars/', '');
             const { data: { publicUrl } } = supabase.storage
@@ -82,23 +81,38 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
         },
         (payload) => {
           const newData = payload.new;
-          setBio(newData.bio || "");
-          setProfileTitle(newData.fullname || "");
-          setAvatar(newData.profile_pic_url || "");
-          
+          // Only update local state if the new data is different
+          setBio((prevBio) => {
+            if ((newData.bio || "") !== prevBio) return newData.bio || "";
+            return prevBio;
+          });
+          setProfileTitle((prevTitle) => {
+            if ((newData.fullname || "") !== prevTitle) return newData.fullname || "";
+            return prevTitle;
+          });
+          setAvatar((prevAvatar) => {
+            if ((newData.profile_pic_url || "") !== prevAvatar) return newData.profile_pic_url || "";
+            return prevAvatar;
+          });
           if (newData.profile_pic_url) {
             const storagePath = newData.profile_pic_url.replace('avatars/', '');
             const { data: { publicUrl } } = supabase.storage
               .from("avatars")
               .getPublicUrl(storagePath);
-            setAvatarUrl(publicUrl);
+            setAvatarUrl((prevUrl) => {
+              if (publicUrl !== prevUrl) return publicUrl;
+              return prevUrl;
+            });
             dispatch(updateUserInfo({
               bio: newData.bio || "",
               profileTitle: newData.fullname || "",
               profilePic: publicUrl
             }));
           } else {
-            setAvatarUrl("");
+            setAvatarUrl((prevUrl) => {
+              if (prevUrl !== "") return "";
+              return prevUrl;
+            });
             dispatch(updateUserInfo({
               bio: newData.bio || "",
               profileTitle: newData.fullname || "",
@@ -118,7 +132,6 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
     const newTitle = e.target.value;
     setProfileTitle(newTitle);
     setError(null);
-    
     try {
       const { error } = await supabase
         .from("users")
@@ -127,9 +140,7 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
           updated_at: new Date().toISOString()
         })
         .eq("id", userID);
-      
       if (error) throw error;
-      
       dispatch(updateUserInfo({ profileTitle: newTitle }));
     } catch (error: any) {
       console.error("Error updating profile title:", error);
@@ -141,7 +152,6 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
     const newBio = e.target.value;
     setBio(newBio);
     setError(null);
-    
     try {
       const { error } = await supabase
         .from("users")
@@ -150,9 +160,7 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
           updated_at: new Date().toISOString()
         })
         .eq("id", userID);
-      
       if (error) throw error;
-      
       dispatch(updateUserInfo({ bio: newBio }));
     } catch (error: any) {
       console.error("Error updating bio:", error);
@@ -163,49 +171,33 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     try {
       setIsUploading(true);
       setError(null);
-
-      // Check file type
       if (!file.type.match(/image\/(jpeg|png|jpg)/)) {
         throw new Error('Please upload a valid image file (JPEG, PNG)');
       }
-
-      // Check file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         throw new Error('Image size should be less than 5MB');
       }
-
       const fileExt = file.name.split('.').pop();
       const filePath = `${userID}/avatar.${fileExt}`;
-      
-      // Delete existing avatar if it exists
       if (avatar) {
         const { error: deleteError } = await supabase.storage
           .from("avatars")
           .remove([avatar.replace('avatars/', '')]);
-        
         if (deleteError) throw deleteError;
       }
-
-      // Upload new avatar
       const { error: uploadError } = await supabase.storage
         .from("avatars")
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: true
         });
-
       if (uploadError) throw uploadError;
-
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from("avatars")
         .getPublicUrl(filePath);
-
-      // Update user record with the full storage path
       const { error: updateError } = await supabase
         .from("users")
         .update({ 
@@ -213,9 +205,7 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
           updated_at: new Date().toISOString()
         })
         .eq("id", userID);
-
       if (updateError) throw updateError;
-
       setAvatarUrl(publicUrl);
       setAvatar(`avatars/${filePath}`);
       dispatch(updateUserInfo({ profilePic: publicUrl }));
@@ -234,9 +224,7 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
         const { error: deleteError } = await supabase.storage
           .from("avatars")
           .remove([avatar.replace('avatars/', '')]);
-        
         if (deleteError) throw deleteError;
-
         const { error: updateError } = await supabase
           .from("users")
           .update({ 
@@ -244,9 +232,7 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
             updated_at: new Date().toISOString()
           })
           .eq("id", userID);
-
         if (updateError) throw updateError;
-
         setAvatar("");
         setAvatarUrl("");
         dispatch(updateUserInfo({ profilePic: "" }));
