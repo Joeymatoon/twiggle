@@ -70,7 +70,7 @@ const MobilePreview: React.FC<MobilePreviewProps> = ({
         <div className="relative flex flex-col items-center mt-12 z-10">
           {/* Glassy/blurred background behind avatar */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full bg-white/10 backdrop-blur-md shadow-xl" style={{ filter: 'blur(4px)' }} />
-          <div className="relative w-28 h-28 rounded-full overflow-hidden border-4 border-purple-400/50 shadow-lg bg-gray-700 flex items-center justify-center">
+          <div className="relative w-28 h-28 rounded-full overflow-hidden border-4 border-purple-400/50 shadow-lg bg-gray-700 flex items-center justify-center z-20">
             {image ? (
               <img
                 src={image}
@@ -87,11 +87,11 @@ const MobilePreview: React.FC<MobilePreviewProps> = ({
           </div>
         </div>
         {/* Profile Title */}
-        <h2 className="text-xl font-bold text-center px-4 mt-4 z-10 text-white/90 dark:text-white">
+        <h2 className="text-2xl font-extrabold text-center px-4 mt-6 mb-1 z-30 text-white/90 dark:text-white" style={{letterSpacing: '.01em'}}>
           {profileTitle || "Your Name"}
         </h2>
         {/* Bio */}
-        <p className="text-sm text-center text-gray-300 px-6 mt-1 z-10">
+        <p className="text-base text-center text-gray-300 px-6 mt-1 z-20">
           {bio || "Your bio will appear here."}
         </p>
         {/* Links */}

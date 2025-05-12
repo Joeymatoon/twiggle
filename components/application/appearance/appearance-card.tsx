@@ -7,18 +7,28 @@ import { createClient } from "@/utils/supabase/components";
 
 interface AppearanceProps {
   userID: string;
+  profileTitle: string;
+  setProfileTitle: React.Dispatch<React.SetStateAction<string>>;
+  bio: string;
+  setBio: React.Dispatch<React.SetStateAction<string>>;
+  avatarUrl: string;
+  setAvatarUrl: React.Dispatch<React.SetStateAction<string>>;
 }
 
-export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
+export const AppearanceCard: React.FC<AppearanceProps> = ({
+  userID,
+  profileTitle,
+  setProfileTitle,
+  bio,
+  setBio,
+  avatarUrl,
+  setAvatarUrl,
+}) => {
   const dispatch = useDispatch();
   const supabase = createClient();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const [profileTitle, setProfileTitle] = useState("");
-  const [bio, setBio] = useState("");
   const [avatar, setAvatar] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState("");
   const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
@@ -83,11 +93,11 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
           const newData = payload.new;
           // Only update local state if the new data is different
           setBio((prevBio) => {
-            if ((newData.bio || "") !== prevBio) return newData.bio || "";
+            if ((newData.bio || "") !== prevBio) { setBio(newData.bio || ""); return newData.bio || ""; }
             return prevBio;
           });
           setProfileTitle((prevTitle) => {
-            if ((newData.fullname || "") !== prevTitle) return newData.fullname || "";
+            if ((newData.fullname || "") !== prevTitle) { setProfileTitle(newData.fullname || ""); return newData.fullname || ""; }
             return prevTitle;
           });
           setAvatar((prevAvatar) => {
@@ -100,7 +110,7 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
               .from("avatars")
               .getPublicUrl(storagePath);
             setAvatarUrl((prevUrl) => {
-              if (publicUrl !== prevUrl) return publicUrl;
+              if (publicUrl !== prevUrl) { setAvatarUrl(publicUrl); return publicUrl; }
               return prevUrl;
             });
             dispatch(updateUserInfo({
@@ -110,7 +120,7 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
             }));
           } else {
             setAvatarUrl((prevUrl) => {
-              if (prevUrl !== "") return "";
+              if (prevUrl !== "") { setAvatarUrl(""); return ""; }
               return prevUrl;
             });
             dispatch(updateUserInfo({
@@ -126,7 +136,7 @@ export const AppearanceCard: React.FC<AppearanceProps> = ({ userID }) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase, userID, dispatch]);
+  }, [supabase, userID, dispatch, setBio, setProfileTitle, setAvatarUrl]);
 
   const handleProfileTitleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
