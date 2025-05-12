@@ -219,13 +219,21 @@ export const MarketplaceSection: React.FC<MarketplaceProps> = ({ userID }) => {
   const [selectedCategories, setSelectedCategories] = useState<string[]>(["All"]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedItem, setSelectedItem] = useState<MarketplaceItem | null>(null);
-  const [items, setItems] = useState<MarketplaceItem[]>(staticItems);
+  const [items, setItems] = useState<MarketplaceItem[]>([]);
   const [categories, setCategories] = useState<string[]>(["All"]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [currentEditItem, setCurrentEditItem] = useState<MarketplaceItem | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
+  const [newItem, setNewItem] = useState({
+    title: '',
+    description: '',
+    category: '',
+    subcategory: '',
+    image_url: '',
+  });
+  const [isAdding, setIsAdding] = useState(false);
   
   const { isOpen, onOpen, onClose } = useDisclosure();
   const supabase = createClient();
@@ -256,8 +264,8 @@ export const MarketplaceSection: React.FC<MarketplaceProps> = ({ userID }) => {
           .order("created_at", { ascending: false });
           
         if (error) {
-          // Fallback to static data if table doesn't exist yet
           console.error("Error fetching marketplace data:", error);
+          toast.error("Failed to load marketplace items");
         } else if (data && data.length > 0) {
           setItems(data);
           
@@ -266,9 +274,13 @@ export const MarketplaceSection: React.FC<MarketplaceProps> = ({ userID }) => {
             new Set(data.map((item) => item.category))
           );
           setCategories(["All", ...uniqueCategories]);
+        } else {
+          // No items found in database
+          setItems([]);
         }
       } catch (error) {
         console.error("Error in fetchData:", error);
+        toast.error("Failed to load marketplace");
       } finally {
         setIsLoading(false);
       }
@@ -365,11 +377,58 @@ export const MarketplaceSection: React.FC<MarketplaceProps> = ({ userID }) => {
     }
   };
 
+  // Add Item Modal handlers
+  const handleOpenAddModal = () => setIsAddModalOpen(true);
+  const handleCloseAddModal = () => setIsAddModalOpen(false);
+  const handleNewItemChange = (field: string, value: string) => {
+    setNewItem((prev) => ({ ...prev, [field]: value }));
+  };
+  const handleAddNewItemSubmit = async () => {
+    setIsAdding(true);
+    try {
+      const { error, data } = await supabase
+        .from('marketplace_items')
+        .insert([
+          {
+            title: newItem.title,
+            description: newItem.description,
+            category: newItem.category,
+            subcategory: newItem.subcategory,
+            image_url: newItem.image_url,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            status: 'active',
+            user_id: userID || null,
+          },
+        ])
+        .select();
+      if (error) throw error;
+      // Add to UI immediately
+      setItems((prev) => [
+        {
+          id: data[0].id,
+          title: newItem.title,
+          description: newItem.description,
+          category: newItem.category,
+          subcategory: newItem.subcategory,
+          image_url: newItem.image_url,
+        },
+        ...prev,
+      ]);
+      setNewItem({ title: '', description: '', category: '', subcategory: '', image_url: '' });
+      setIsAddModalOpen(false);
+    } catch (err) {
+      toast.error('Failed to add item');
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
   return (
     <div className="flex flex-col w-full p-8">
       <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
         <h1 className="text-3xl font-bold">Marketplace</h1>
-        <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
+        <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto items-center justify-end">
           <Input
             type="text"
             placeholder="Search by title or description..."
@@ -394,16 +453,14 @@ export const MarketplaceSection: React.FC<MarketplaceProps> = ({ userID }) => {
               </Checkbox>
             ))}
           </CheckboxGroup>
-          {isAdmin && (
-            <Button 
-              color="secondary" 
-              startContent={<i className="ri-add-line"></i>}
-              onPress={handleAddNewItem}
-              className="self-end"
-            >
-              Add New Item
-            </Button>
-          )}
+          <Button 
+            color="secondary" 
+            startContent={<i className="ri-add-line"></i>}
+            onPress={handleOpenAddModal}
+            className="self-end"
+          >
+            Add Item
+          </Button>
         </div>
       </div>
       
@@ -471,114 +528,62 @@ export const MarketplaceSection: React.FC<MarketplaceProps> = ({ userID }) => {
       {isAdmin && (
         <AdminItemModal
           isOpen={isAddModalOpen}
-          onClose={() => setIsAddModalOpen(false)}
+          onClose={handleCloseAddModal}
           onSave={handleSaveItem}
           currentItem={currentEditItem}
           isLoading={isSaving}
         />
       )}
+
+      {/* Add Item Modal */}
+      <Modal isOpen={isAddModalOpen} onClose={handleCloseAddModal} size="2xl">
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader>Add Marketplace Item</ModalHeader>
+              <ModalBody>
+                <Input
+                  label="Title"
+                  value={newItem.title}
+                  onChange={(e) => handleNewItemChange('title', e.target.value)}
+                  required
+                />
+                <Textarea
+                  label="Description"
+                  value={newItem.description}
+                  onChange={(e) => handleNewItemChange('description', e.target.value)}
+                  required
+                />
+                <Input
+                  label="Category"
+                  value={newItem.category}
+                  onChange={(e) => handleNewItemChange('category', e.target.value)}
+                  required
+                />
+                <Input
+                  label="Subcategory"
+                  value={newItem.subcategory}
+                  onChange={(e) => handleNewItemChange('subcategory', e.target.value)}
+                />
+                <Input
+                  label="Image URL"
+                  value={newItem.image_url}
+                  onChange={(e) => handleNewItemChange('image_url', e.target.value)}
+                  required
+                />
+              </ModalBody>
+              <ModalFooter>
+                <Button color="default" variant="light" onPress={onClose}>
+                  Cancel
+                </Button>
+                <Button color="secondary" onPress={handleAddNewItemSubmit} isLoading={isAdding}>
+                  Add Item
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </div>
   );
-};
-
-// Static items used as fallback
-const staticItems: MarketplaceItem[] = [
-  {
-    id: "1",
-    title: "Modern Portfolio Template",
-    description: "A sleek, responsive portfolio template for developers and designers.",
-    category: "Templates",
-    image_url: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=600&q=80",
-  },
-  {
-    id: "2",
-    title: "Minimal Icon Pack",
-    description: "A set of 100+ minimal icons for web and mobile projects.",
-    category: "Icons",
-    image_url: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80",
-  },
-  {
-    id: "3",
-    title: "Analytics Widget",
-    description: "A plug-and-play analytics widget for your dashboard.",
-    category: "Widgets",
-    image_url: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=600&q=80",
-  },
-  {
-    id: "4",
-    title: "E-commerce UI Kit",
-    description: "A complete UI kit for building modern e-commerce apps.",
-    category: "Templates",
-    image_url: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80",
-  },
-  {
-    id: "5",
-    title: "Colorful Illustration Pack",
-    description: "Hand-drawn illustrations to make your site pop.",
-    category: "Illustrations",
-    image_url: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=600&q=80",
-  },
-  {
-    id: "6",
-    title: "Finance Dashboard Widget",
-    description: "A ready-to-use finance dashboard widget.",
-    category: "Widgets",
-    image_url: "https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=600&q=80",
-  },
-  {
-    id: "7",
-    title: "Personal Blog Template",
-    description: "A clean and modern template for personal blogs and writers.",
-    category: "Templates",
-    image_url: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=600&q=80",
-  },
-  {
-    id: "8",
-    title: "Abstract Illustration Set",
-    description: "A collection of abstract illustrations for creative projects.",
-    category: "Illustrations",
-    image_url: "https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=600&q=80",
-  },
-  {
-    id: "9",
-    title: "Weather Widget",
-    description: "A beautiful weather widget for dashboards and apps.",
-    category: "Widgets",
-    image_url: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=600&q=80",
-  },
-  {
-    id: "10",
-    title: "Line Icon Pack",
-    description: "A stylish pack of line icons for modern interfaces.",
-    category: "Icons",
-    image_url: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=600&q=80",
-  },
-  {
-    id: "11",
-    title: "Business Mockup Kit",
-    description: "Professional mockups for business presentations and portfolios.",
-    category: "Mockups",
-    image_url: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=600&q=80",
-  },
-  {
-    id: "12",
-    title: "Creative Backgrounds",
-    description: "A set of vibrant backgrounds for websites and apps.",
-    category: "Backgrounds",
-    image_url: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80",
-  },
-  {
-    id: "13",
-    title: "Resume Template",
-    description: "A modern resume template to help you stand out.",
-    category: "Templates",
-    image_url: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80",
-  },
-  {
-    id: "14",
-    title: "Social Media Icon Set",
-    description: "Essential icons for all major social media platforms.",
-    category: "Icons",
-    image_url: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80",
-  }
-]; 
+}; 

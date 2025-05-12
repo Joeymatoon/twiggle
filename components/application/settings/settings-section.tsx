@@ -1,6 +1,6 @@
 import { Button, Divider, useDisclosure, Card, CardBody, CardHeader } from "@nextui-org/react";
 import { SocialIcons } from "./social-icons";
-import { PreviewMobile } from "../preview/mobile";
+import MobilePreview from "../preview/mobile";
 import { HeaderCardProps } from "../links/links-card";
 import { ProfileDataProps } from "@/pages/admin";
 
@@ -48,12 +48,14 @@ export const SettingSection: React.FC<SettingsProps> = ({
         >
           <span className="font-bold">Preview</span>
         </Button>
-        <PreviewMobile
+        <MobilePreview
           isOpen={isOpen}
-          onOpenChange={onOpenChange}
-          content={content}
-          profileData={profileData}
-          userID={userID}
+          onClose={onOpenChange}
+          profileTitle={profileData.profileTitle}
+          bio={profileData.bio}
+          image={profileData.avatarUrl}
+          links={content.filter(item => item.link && item.header).map(item => item.header)}
+          darkMode={true}
         />
       </div>
     </div>
