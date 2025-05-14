@@ -29,6 +29,11 @@ export const HeaderCard: React.FC<{
 
   useEffect(() => {
     if (state.link && state.header) {
+      // Skip metadata fetching for email addresses
+      if (state.header.includes('@')) {
+        setMetadata('Email Address');
+        return;
+      }
       fetchMetadata(state.header);
     }
   }, [state.header, state.link]);
@@ -36,8 +41,12 @@ export const HeaderCard: React.FC<{
   const fetchMetadata = async (url: string) => {
     try {
       setIsLoading(true);
+      // Only fetch metadata for valid URLs
+      if (!url.match(/^(https?:\/\/)/i)) {
+        url = `https://${url}`;
+      }
       const response = await axios.get(
-        `/api/metadata?url=${encodeURIComponent(validateUrl(url))}`
+        `/api/metadata?url=${encodeURIComponent(url)}`
       );
       if (response.data.title) {
         setMetadata(response.data.title);

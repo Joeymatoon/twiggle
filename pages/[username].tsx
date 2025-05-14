@@ -12,7 +12,7 @@ import { HeaderCardProps } from "+/application/links/links-card";
 
 interface UserPageProps {
   user: {
-    user_id: string;
+    id: string;
     username: string;
     fullname: string;
     profile_pic_url: string;
@@ -42,31 +42,29 @@ const UserPage: React.FC<UserPageProps> = ({ user, error }) => {
         const { data, error } = await supabase
           .from("headers")
           .select()
-          .eq("user_id", user.user_id); // Correct
+          .eq("user_id", user.id); // Use user.id
         console.log("header data", data);
 
         if (error) {
-          console.error("Error fetching user header:", error);
+          console.error("Error fetching headers:", error);
+        } else if (data) {
+          const newContents = data.map((item: any) => ({
+            header: item.title,       // Use 'title' from DB for header text
+            id: item.id,              // Use 'id' from DB for unique key
+            active: item.active,
+            link: item.is_link,       // Use 'is_link' from DB
+          }));
+          setContent(newContents); // Replace existing content with new data
         } else {
-          data.forEach((content) => {
-            setContent((prevContents) => [
-              ...prevContents,
-              {
-                header: content.content,
-                id: content.header_id,
-                active: content.active,
-                link: content.isLink,
-              },
-            ]);
-          });
+          setContent([]); // If no data and no error, set to empty array
         }
       } catch (error) {
-        console.error("Error fetching user data:", error);
+        console.error("Error fetching headers:", error); // Corrected error message
       }
     };
 
     fetchHeaderData();
-  }, [supabase, user.user_id]);
+  }, [supabase, user.id]);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -74,7 +72,7 @@ const UserPage: React.FC<UserPageProps> = ({ user, error }) => {
         const { data, error } = await supabase
           .from("users")
           .select()
-          .eq("user_id", user.user_id);
+          .eq("id", user.id);
 
         if (data && data.length > 0) {
           setProfileData((prevInputs: any) => ({
@@ -94,7 +92,7 @@ const UserPage: React.FC<UserPageProps> = ({ user, error }) => {
     };
 
     fetchUserData();
-  }, [supabase, user.user_id]);
+  }, [supabase, user.id]);
 
   if (router.isFallback) {
     return <div>Loading...</div>;

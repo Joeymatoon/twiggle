@@ -2,17 +2,15 @@ import React, { useState } from "react";
 import Image from "next/image";
 
 interface MobilePreviewProps {
-  profileTitle: string;
-  bio: string;
-  image: string | null;
-  links: string[];
+  profileTitle?: string;
+  bio?: string;
+  image?: string;
+  links?: string[];
   darkMode?: boolean;
-  isOpen: boolean;
-  onClose: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
+  headerStyle?: string; // Add headerStyle prop
 }
-
-const gradientBg =
-  "bg-gradient-to-br from-purple-600 via-indigo-500 to-blue-400 animate-gradient-x";
 
 const MobilePreview: React.FC<MobilePreviewProps> = ({
   profileTitle,
@@ -22,8 +20,12 @@ const MobilePreview: React.FC<MobilePreviewProps> = ({
   darkMode = true,
   isOpen,
   onClose,
+  headerStyle, // Destructure headerStyle
 }) => {
   const [localDarkMode, setLocalDarkMode] = useState(darkMode);
+
+  const fallbackTextColor = localDarkMode ? 'text-white/90' : 'text-neutral-800'; // Define fallback text color
+
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
@@ -87,7 +89,10 @@ const MobilePreview: React.FC<MobilePreviewProps> = ({
           </div>
         </div>
         {/* Profile Title */}
-        <h2 className="text-2xl font-extrabold text-center px-4 mt-6 mb-1 z-30 text-white/90 dark:text-white" style={{letterSpacing: '.01em'}}>
+        <h2 
+          className={`text-2xl font-extrabold text-center px-4 mt-6 mb-1 z-30 ${headerStyle ? headerStyle : fallbackTextColor}`}
+          style={{letterSpacing: '.01em'}}
+        >
           {profileTitle || "Your Name"}
         </h2>
         {/* Bio */}

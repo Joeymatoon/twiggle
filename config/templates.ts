@@ -25,7 +25,7 @@ export const templates: { [key: string]: TemplateType } = {
       background: "bg-gradient-to-b from-default-50 via-default-100 to-default-50",
       cardStyle: "bg-white/90 backdrop-blur-sm hover:bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300 transform hover:scale-[1.02] border border-default-100",
       linkStyle: "flex items-center justify-between p-5",
-      headerStyle: "text-2xl font-bold mb-3 bg-gradient-to-r from-default-900 to-default-600 bg-clip-text text-transparent",
+      headerStyle: "text-3xl font-bold mb-4 text-center bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent",
       bioStyle: "text-default-600 text-center px-6 mb-6 text-base leading-relaxed",
       socialIconsStyle: "flex items-center gap-2 bg-white/80 backdrop-blur-sm p-3 rounded-full hover:bg-white transition-all duration-300 transform hover:scale-110 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)]",
       avatarStyle: "w-28 h-28 rounded-full overflow-hidden mb-4 transform hover:scale-105 transition-transform duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-4 ring-white",
@@ -89,7 +89,7 @@ export const templates: { [key: string]: TemplateType } = {
       background: "bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500",
       cardStyle: "bg-white/10 backdrop-blur-lg hover:bg-white/20 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.15)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.25)] transition-all duration-300 transform hover:scale-[1.02] border border-white/20",
       linkStyle: "flex items-center justify-between p-6",
-      headerStyle: "text-3xl font-bold mb-4 text-white",
+      headerStyle: "text-3xl font-bold mb-4 bg-gradient-to-r from-pink-400 via-purple-400 to-indigo-500 bg-clip-text text-transparent",
       bioStyle: "text-white/90 text-center px-8 mb-8 text-lg leading-relaxed font-medium",
       socialIconsStyle: "flex items-center gap-2 bg-white/10 backdrop-blur-lg p-4 rounded-2xl hover:bg-white/20 transition-all duration-300 transform hover:scale-110 shadow-[0_8px_30px_rgb(0,0,0,0.15)]",
       avatarStyle: "w-32 h-32 rounded-2xl overflow-hidden mb-6 transform hover:scale-105 transition-transform duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.15)] ring-4 ring-white/20",
@@ -112,4 +112,4 @@ export const templates: { [key: string]: TemplateType } = {
       footerStyle: "text-slate-400 text-sm font-medium"
     }
   }
-}; 
+};

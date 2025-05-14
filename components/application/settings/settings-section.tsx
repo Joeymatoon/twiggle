@@ -3,19 +3,25 @@ import { SocialIcons } from "./social-icons";
 import MobilePreview from "../preview/mobile";
 import { HeaderCardProps } from "../links/links-card";
 import { ProfileDataProps } from "@/pages/admin";
+import { templates } from "@/config/templates"; // Added import
 
 interface SettingsProps {
   userID: string;
   content: HeaderCardProps[];
   profileData: ProfileDataProps;
+  selectedTemplate: string; // Added selectedTemplate prop
 }
 
 export const SettingSection: React.FC<SettingsProps> = ({
   userID,
   content,
   profileData,
+  selectedTemplate, // Destructure selectedTemplate
 }) => {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
+
+  const currentTemplateStyles = templates[selectedTemplate]?.styles;
+  const headerStyle = currentTemplateStyles?.headerStyle;
 
   return (
     <div className="flex gap-8 w-full md:w-2/3 box-content px-4 h-[93vh] justify-center">
@@ -56,6 +62,7 @@ export const SettingSection: React.FC<SettingsProps> = ({
           image={profileData.avatarUrl}
           links={content.filter(item => item.link && item.header).map(item => item.header)}
           darkMode={true}
+          headerStyle={headerStyle} // Pass the dynamic header style
         />
       </div>
     </div>

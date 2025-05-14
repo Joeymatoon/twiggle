@@ -22,6 +22,7 @@ export default function Appearance() {
   });
   const [content, setContent] = useState<HeaderCardProps[]>([]);
   const [userID, setUserID] = useState("");
+  const [selectedTemplate, setSelectedTemplate] = useState("default"); // Added state for selectedTemplate
   const supabase = createClient();
 
   useEffect(() => {
@@ -50,6 +51,44 @@ export default function Appearance() {
 
     checkLoggedIn();
   }, []);
+
+  // Load saved template preference
+  useEffect(() => {
+    const loadTemplatePreference = async () => {
+      if (!userID) return;
+      try {
+        const { data, error } = await supabase
+          .from("users")
+          .select("template")
+          .eq("id", userID)
+          .single();
+
+        if (!error && data?.template) {
+          setSelectedTemplate(data.template);
+        }
+      } catch (error) {
+        console.error("Error loading template preference:", error);
+      }
+    };
+
+    loadTemplatePreference();
+  }, [userID, supabase]);
+
+  // Save template preference
+  const handleTemplateChange = async (template: string) => {
+    setSelectedTemplate(template);
+    if (!userID) return;
+    try {
+      const { error } = await supabase
+        .from("users")
+        .update({ template })
+        .eq("id", userID);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error("Error saving template preference:", error);
+    }
+  };
 
   useEffect(() => {
     const fetchHeaderData = async () => {
@@ -169,9 +208,16 @@ export default function Appearance() {
           userID={userID}
           content={content}
           profileData={profileData}
+          selectedTemplate={selectedTemplate} // Pass selectedTemplate
         />
         {isWideScreen && (
-          <Preview content={content} profileData={profileData} />
+          <Preview 
+            content={content} 
+            profileData={profileData} 
+            userID={userID} 
+            selectedTemplate={selectedTemplate} // Pass selectedTemplate
+            onTemplateChange={handleTemplateChange} // Pass handler
+          />
         )}
       </div>
     </>

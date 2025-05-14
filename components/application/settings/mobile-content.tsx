@@ -123,7 +123,7 @@ export default function MobileContent() {
 
         {/* Right: Phone Preview Section */}
         <div className="w-full flex justify-center">
-          <div className={`relative w-[300px] h-[600px] rounded-[2.5rem] p-6 flex flex-col items-center space-y-4 shadow-2xl border-4 transition-all duration-300 ${darkMode ? "bg-gray-900 border-gray-800" : "bg-gray-200 border-gray-300"}`}>
+          <div className={`relative w-[300px] h-[600px] rounded-[2.5rem] p-6 flex flex-col items-center space-y-4 shadow-2xl border-8 transition-all duration-300 ${darkMode ? "bg-gray-900 border-purple-500" : "bg-gray-200 border-purple-500"}`}>
             <div className="absolute top-0 left-1/2 -translate-x-1/2 bg-gray-700 w-24 h-2 rounded-b-xl mt-1"></div>
             <div className="w-24 h-24 rounded-full overflow-hidden mt-6">
               {image ? (
@@ -134,7 +134,7 @@ export default function MobileContent() {
                 </div>
               )}
             </div>
-            <h2 className="text-lg font-semibold text-center px-2 break-words">{profileTitle || "Your Name"}</h2>
+            <h2 className="text-lg font-semibold text-center px-2 break-words" style={{color: "red"}}>{profileTitle || "Your Name"}</h2>
             <p className="text-sm text-center text-gray-400 px-2 break-words">{bio || "Your bio will appear here."}</p>
             <div className="w-full space-y-3 pt-4 overflow-y-auto max-h-48 px-1">
               {links.map((link, index) => (
@@ -158,4 +158,4 @@ export default function MobileContent() {
       </div>
     </div>
   );
-} 
+}

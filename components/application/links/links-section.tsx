@@ -14,12 +14,14 @@ import { RootState } from "@/utils/state/reducers/reducers";
 import { createClient } from "@/utils/supabase/components";
 import MobilePreview from "../preview/mobile";
 import { ProfileDataProps } from "@/pages/admin";
+import { templates } from "@/config/templates"; // Added import
 
 interface LinksProps {
   userID: string;
   content: HeaderCardProps[];
   setContentState: React.Dispatch<React.SetStateAction<HeaderCardProps[]>>;
   profileData: ProfileDataProps;
+  selectedTemplate: string; // Added selectedTemplate prop
 }
 
 export const LinksSection: React.FC<LinksProps> = ({
@@ -27,12 +29,16 @@ export const LinksSection: React.FC<LinksProps> = ({
   content,
   setContentState,
   profileData,
+  selectedTemplate, // Destructure selectedTemplate
 }) => {
   const dispatch = useDispatch();
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const user = useSelector((state: RootState) => state.user);
   const supabase = createClient();
   const [isLoading, setIsLoading] = useState(false);
+
+  const currentTemplateStyles = templates[selectedTemplate]?.styles;
+  const headerStyle = currentTemplateStyles?.headerStyle;
 
   useEffect(() => {
     const fetchHeaderData = async () => {
@@ -360,6 +366,7 @@ export const LinksSection: React.FC<LinksProps> = ({
           image={profileData.avatarUrl}
           links={content.filter(item => item.link && item.header).map(item => item.header)}
           darkMode={true}
+          headerStyle={headerStyle} // Pass the dynamic header style
         />
       </div>
     </div>

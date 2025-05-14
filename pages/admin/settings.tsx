@@ -24,6 +24,7 @@ export default function Settings() {
   const [content, setContent] = useState<HeaderCardProps[]>([]);
   const [userID, setUserID] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedTemplate, setSelectedTemplate] = useState("default"); // Added state
   const supabase = createClient();
   const dispatch = useDispatch();
 
@@ -53,6 +54,44 @@ export default function Settings() {
 
     checkLoggedIn();
   }, []);
+
+  // Load saved template preference
+  useEffect(() => {
+    const loadTemplatePreference = async () => {
+      if (!userID) return;
+      try {
+        const { data, error } = await supabase
+          .from("users")
+          .select("template")
+          .eq("id", userID)
+          .single();
+
+        if (!error && data?.template) {
+          setSelectedTemplate(data.template);
+        }
+      } catch (error) {
+        console.error("Error loading template preference:", error);
+      }
+    };
+
+    loadTemplatePreference();
+  }, [userID, supabase]);
+
+  // Save template preference
+  const handleTemplateChange = async (template: string) => {
+    setSelectedTemplate(template);
+    if (!userID) return;
+    try {
+      const { error } = await supabase
+        .from("users")
+        .update({ template })
+        .eq("id", userID);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error("Error saving template preference:", error);
+    }
+  };
 
   useEffect(() => {
     const fetchHeaderData = async () => {
@@ -228,9 +267,16 @@ export default function Settings() {
           userID={userID}
           content={content}
           profileData={profileData}
+          selectedTemplate={selectedTemplate} // Pass selectedTemplate
         />
         {isWideScreen && (
-          <Preview content={content} profileData={profileData} />
+          <Preview 
+            content={content} 
+            profileData={profileData} 
+            userID={userID}
+            selectedTemplate={selectedTemplate} // Pass selectedTemplate
+            onTemplateChange={handleTemplateChange} // Pass handler
+          />
         )}
       </div>
     </>

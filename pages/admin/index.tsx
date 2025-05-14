@@ -30,6 +30,7 @@ export default function AdminPage() {
   });
   const [userID, setUserID] = useState("");
   const [content, setContent] = useState<HeaderCardProps[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState("default"); // Added state
   const supabase = createClient();
 
   useEffect(() => {
@@ -56,7 +57,7 @@ export default function AdminPage() {
           const { data, error } = await supabase
             .from("users")
             .select()
-            .eq("user_id", response.data.session.id);
+            .eq("id", response.data.session.id);
 
           if (error) {
             console.error("Error fetching user data in links navbar", error);
@@ -71,6 +72,44 @@ export default function AdminPage() {
 
     checkLoggedIn();
   }, [supabase]); // Run once when component mounts
+
+  // Load saved template preference
+  useEffect(() => {
+    const loadTemplatePreference = async () => {
+      if (!userID) return;
+      try {
+        const { data, error } = await supabase
+          .from("users")
+          .select("template")
+          .eq("id", userID)
+          .single();
+
+        if (!error && data?.template) {
+          setSelectedTemplate(data.template);
+        }
+      } catch (error) {
+        console.error("Error loading template preference:", error);
+      }
+    };
+
+    loadTemplatePreference();
+  }, [userID, supabase]);
+
+  // Save template preference
+  const handleTemplateChange = async (template: string) => {
+    setSelectedTemplate(template);
+    if (!userID) return;
+    try {
+      const { error } = await supabase
+        .from("users")
+        .update({ template })
+        .eq("id", userID);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error("Error saving template preference:", error);
+    }
+  };
 
   useEffect(() => {
     // Fetch user data when the component mounts
@@ -112,7 +151,7 @@ export default function AdminPage() {
         const { data, error } = await supabase
           .from("users")
           .select()
-          .eq("user_id", userID);
+          .eq("id", userID);
 
         if (data && data.length > 0) {
           setProfileData((prevInputs: any) => ({
@@ -145,9 +184,16 @@ export default function AdminPage() {
           content={content}
           setContentState={setContent}
           profileData={profileData}
+          selectedTemplate={selectedTemplate} // Pass selectedTemplate
         />
         {isWideScreen && (
-          <Preview content={content} profileData={profileData} />
+          <Preview 
+            content={content} 
+            profileData={profileData} 
+            userID={userID} 
+            selectedTemplate={selectedTemplate} // Pass selectedTemplate
+            onTemplateChange={handleTemplateChange} // Pass handler
+          />
         )}
       </div>
     </div>

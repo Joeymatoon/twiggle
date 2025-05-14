@@ -9,16 +9,19 @@ interface PreviewProps {
   content: HeaderCardProps[];
   profileData: ProfileDataProps;
   userID: string;
+  selectedTemplate: string; // Added prop
+  onTemplateChange: (templateId: string) => void; // Added prop
 }
 
 export const Preview: React.FC<PreviewProps> = ({
   content,
   profileData,
-  userID,
+  userID, // userID is already a prop, no change needed here for it
+  selectedTemplate, // Use prop
+  onTemplateChange, // Use prop
 }) => {
   const [scaleFactor, setScaleFactor] = useState(100);
-  const [selectedTemplate, setSelectedTemplate] = useState("default");
-  const supabase = createClient();
+  // const supabase = createClient(); // supabase client can be initialized if needed for other logic, or removed if only for template
 
   useEffect(() => {
     function updateScaleFactor() {
@@ -34,43 +37,9 @@ export const Preview: React.FC<PreviewProps> = ({
     };
   }, []);
 
-  // Load saved template preference
-  useEffect(() => {
-    const loadTemplatePreference = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("users")
-          .select("template")
-          .eq("id", userID)
-          .single();
-
-        if (!error && data?.template) {
-          setSelectedTemplate(data.template);
-        }
-      } catch (error) {
-        console.error("Error loading template preference:", error);
-      }
-    };
-
-    if (userID) {
-      loadTemplatePreference();
-    }
-  }, [userID, supabase]);
-
-  // Save template preference
-  const handleTemplateChange = async (template: string) => {
-    setSelectedTemplate(template);
-    try {
-      const { error } = await supabase
-        .from("users")
-        .update({ template })
-        .eq("id", userID);
-
-      if (error) throw error;
-    } catch (error) {
-      console.error("Error saving template preference:", error);
-    }
-  };
+  // Removed internal state management for selectedTemplate
+  // Removed useEffect for loading template preference
+  // Removed handleTemplateChange as it's now passed as a prop
 
   const scaledStyle = {
     transform: `scale(${scaleFactor})`,
@@ -96,14 +65,14 @@ export const Preview: React.FC<PreviewProps> = ({
           <PreviewContent 
             content={content} 
             profileData={profileData} 
-            template={selectedTemplate}
+            template={selectedTemplate} // Use prop
           />
         </div>
       </section>
       <section className="w-full max-w-5xl">
         <TemplateSelector
-          selectedTemplate={selectedTemplate}
-          onTemplateChange={handleTemplateChange}
+          selectedTemplate={selectedTemplate} // Pass prop
+          onTemplateChange={onTemplateChange} // Pass prop
         />
       </section>
     </div>

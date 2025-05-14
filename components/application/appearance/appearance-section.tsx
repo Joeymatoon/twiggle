@@ -4,17 +4,20 @@ import { AppearanceCard } from "./appearance-card";
 import MobilePreview from "../preview/mobile";
 import { HeaderCardProps } from "../links/links-card";
 import { ProfileDataProps } from "@/pages/admin";
+import { templates } from "@/config/templates"; // Added import
 
 interface AppearanceProps {
   userID: string;
   content: HeaderCardProps[];
   profileData: ProfileDataProps;
+  selectedTemplate: string; // Added selectedTemplate prop
 }
 
 export const AppearanceSection: React.FC<AppearanceProps> = ({
   userID,
   content,
   profileData,
+  selectedTemplate, // Destructure selectedTemplate
 }) => {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
@@ -22,6 +25,9 @@ export const AppearanceSection: React.FC<AppearanceProps> = ({
   const [profileTitle, setProfileTitle] = useState(profileData.profileTitle || "");
   const [bio, setBio] = useState(profileData.bio || "");
   const [avatarUrl, setAvatarUrl] = useState(profileData.avatarUrl || "");
+
+  const currentTemplateStyles = templates[selectedTemplate]?.styles;
+  const headerStyle = currentTemplateStyles?.headerStyle;
 
   return (
     <div className="flex gap-8 w-full md:w-2/3 box-content px-4 min-h-[93vh] justify-center">
@@ -66,6 +72,7 @@ export const AppearanceSection: React.FC<AppearanceProps> = ({
           image={avatarUrl}
           links={content.filter(item => item.link && item.header).map(item => item.header)}
           darkMode={true}
+          headerStyle={headerStyle} // Pass the dynamic header style
         />
       </div>
     </div>

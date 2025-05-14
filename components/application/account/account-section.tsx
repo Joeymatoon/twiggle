@@ -33,7 +33,7 @@ export const AccountSection: React.FC<AccountProps> = ({ userID }) => {
         const { data, error } = await supabase
           .from("users")
           .select()
-          .eq("user_id", userID); // Correct
+          .eq("id", userID); // Correct
 
         if (data && data.length > 0) {
           setProfileTitle(data[0].fullname || "");
@@ -72,7 +72,7 @@ export const AccountSection: React.FC<AccountProps> = ({ userID }) => {
       const { error } = await supabase
         .from("users")
         .update({ fullname: profileTitle })
-        .eq("user_id", userID);
+        .eq("id", userID);
 
       if (error) {
         console.error("Error changing username", error);
