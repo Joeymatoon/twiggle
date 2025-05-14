@@ -73,7 +73,7 @@ export const templates: { [key: string]: TemplateType } = {
       background: "bg-gradient-to-b from-gray-900 via-gray-800 to-black",
       cardStyle: "bg-gray-800/40 backdrop-blur-md hover:bg-gray-800/60 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.2)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.3)] transition-all duration-300 transform hover:scale-[1.02] border border-gray-700/50",
       linkStyle: "flex items-center justify-between p-5",
-      headerStyle: "text-2xl font-bold mb-3 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent",
+      headerStyle: "text-2xl font-bold mb-3 text-white",
       bioStyle: "text-gray-300 text-center px-6 mb-6 text-base leading-relaxed",
       socialIconsStyle: "flex items-center gap-2 bg-gray-800/40 backdrop-blur-md p-3 rounded-full hover:bg-gray-800/60 transition-all duration-300 transform hover:scale-110 shadow-[0_8px_30px_rgb(0,0,0,0.2)]",
       avatarStyle: "w-28 h-28 rounded-full overflow-hidden mb-4 transform hover:scale-105 transition-transform duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.2)] ring-4 ring-gray-800",
