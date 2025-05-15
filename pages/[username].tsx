@@ -49,11 +49,12 @@ const UserPage: React.FC<UserPageProps> = ({ user, error }) => {
         if (error) {
           console.error("Error fetching headers:", error);
         } else if (data) {
-          const newContents = data.map((item: any) => ({
+          const newContents = data.map((item: any, index: number) => ({
             header: item.title,       // Use 'title' from DB for header text
             id: item.id,              // Use 'id' from DB for unique key
             active: item.active,
             link: item.is_link,       // Use 'is_link' from DB
+            position: index,          // Add position property using the array index
           }));
           setContent(newContents); // Replace existing content with new data
         } else {
