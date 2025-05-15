@@ -15,6 +15,7 @@ export default function Account() {
     avatarUrl: "",
     profileTitle: "",
     username: "",
+    userID: "", // Add the userID property with an empty string as initial value
   });
   const [userData, setUserData] = useState();
   const [userID, setUserID] = useState("");
