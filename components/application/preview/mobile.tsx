@@ -66,7 +66,7 @@ const MobilePreview: React.FC<MobilePreviewProps> = ({
         </div>
         {/* Animated/Glass background */}
         <div
-          className={`absolute inset-0 z-0 ${gradientBg} opacity-30 blur-2xl pointer-events-none`}
+          className={`absolute inset-0 z-0 bg-gradient-to-br from-purple-500/20 via-pink-500/20 to-orange-500/20 opacity-30 blur-2xl pointer-events-none`}
         />
         {/* Avatar with glassy background */}
         <div className="relative flex flex-col items-center mt-12 z-10">
