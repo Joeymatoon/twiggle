@@ -127,11 +127,12 @@ export default function AdminPage() {
           // Clear existing content before adding new
           setContent([]);
           // Add all headers at once instead of one by one
-          const formattedContent = data.map(content => ({
+          const formattedContent = data.map((content, index) => ({
             header: content.content,
             id: content.header_id,
             active: content.active,
             link: content.isLink,
+            position: index // Add position property
           }));
           setContent(formattedContent);
         }
