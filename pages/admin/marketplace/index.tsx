@@ -12,7 +12,7 @@ export default function Marketplace() {
     avatarUrl: "",
     profileTitle: "",
     username: "",
-  });
+  } as ProfileDataProps);
   const [userID, setUserID] = useState("");
   const supabase = createClient();
 
@@ -34,14 +34,17 @@ export default function Marketplace() {
           .single();
 
         if (profileData) {
+          const avatarUrl = profileData.profile_pic_url 
+            ? `https://qjpqmdezsulsnwjblvsl.supabase.co/storage/v1/object/public/${profileData.profile_pic_url}`
+            : "";
+            
           setProfileData({
-            bio: profileData.bio || "",
-            avatar: profileData.profile_pic_url || "",
-            avatarUrl: profileData.profile_pic_url
-              ? `https://qjpqmdezsulsnwjblvsl.supabase.co/storage/v1/object/public/${profileData.profile_pic_url}`
-              : "",
-            profileTitle: profileData.fullname || "",
-            username: profileData.username || "",
+            bio: profileData.bio ?? "",
+            avatar: profileData.profile_pic_url ?? "",
+            avatarUrl,
+            profileTitle: profileData.fullname ?? "",
+            username: profileData.username ?? "",
+            userID: user.id // Add the userID from the authenticated user
           });
         }
       } catch (error) {
@@ -59,4 +62,4 @@ export default function Marketplace() {
       <MarketplaceSection userID={userID} />
     </>
   );
-} 
+}

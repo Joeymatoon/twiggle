@@ -137,13 +137,23 @@ export default function Settings() {
           filter: `user_id=eq.${userID}`,
         },
         async () => {
-          const { data, error } = await supabase
-            .from("headers")
-            .select("*")
-            .eq("user_id", userID)
-            .order("position", { ascending: true });
+          try {
+            const { data, error } = await supabase
+              .from("headers")
+              .select("*")
+              .eq("user_id", userID)
+              .order("position", { ascending: true });
 
-          if (!error && data) {
+            if (error) {
+              console.error("Error fetching headers in subscription:", error);
+              return;
+            }
+
+            if (!data) {
+              console.warn("No header data received in subscription");
+              return;
+            }
+
             const formattedHeaders = data.map(header => ({
               id: header.id,
               header: header.title || "",
@@ -153,6 +163,8 @@ export default function Settings() {
             }));
 
             setContent(formattedHeaders);
+          } catch (error) {
+            console.error("Error in header subscription handler:", error);
           }
         }
       )
@@ -177,13 +189,17 @@ export default function Settings() {
         if (error) throw error;
 
         if (data) {
-          const { data: { publicUrl } } = supabase.storage
-            .from("avatars")
-            .getPublicUrl(data.profile_pic_url?.replace('avatars/', '') || '');
+          let publicUrl = '';
+          if (data.profile_pic_url) {
+            const { data: storageData } = await supabase.storage
+              .from("avatars")
+              .getPublicUrl(data.profile_pic_url.replace('avatars/', ''));
+            publicUrl = storageData?.publicUrl || '';
+          }
 
-          const newProfileData = {
-            bio: data.bio || "",
-            profileTitle: data.fullname || "",
+          const newProfileData: ProfileDataProps = { 
+            bio: data.bio || "", 
+            profileTitle: data.fullname || "", 
             avatar: data.profile_pic_url || "",
             username: data.username || "",
             avatarUrl: publicUrl,
@@ -192,10 +208,10 @@ export default function Settings() {
 
           setProfileData(newProfileData);
           dispatch(updateUserInfo({
-            bio: data.bio || "",
-            profileTitle: data.fullname || "",
+            bio: newProfileData.bio,
+            profileTitle: newProfileData.profileTitle,
             profilePic: publicUrl,
-            username: data.username || ""
+            username: newProfileData.username
           }));
         }
       } catch (error) {
@@ -216,28 +232,50 @@ export default function Settings() {
           table: 'users',
           filter: `id=eq.${userID}`,
         },
-        (payload) => {
-          const newData = payload.new;
-          const { data: { publicUrl } } = supabase.storage
-            .from("avatars")
-            .getPublicUrl(newData.profile_pic_url?.replace('avatars/', '') || '');
+        async (payload) => {
+          try {
+            if (!payload?.new) {
+              console.warn('Received real-time update without new data');
+              return;
+            }
 
-          const newProfileData = {
-            bio: newData.bio || "",
-            profileTitle: newData.fullname || "",
-            avatar: newData.profile_pic_url || "",
-            username: newData.username || "",
-            avatarUrl: publicUrl,
-            userID: userID
-          };
+            const newData = payload.new;
+            let publicUrl = '';
+            
+            if (newData && 'profile_pic_url' in newData && typeof newData.profile_pic_url === 'string') {
+              try {
+                const { data: storageData } = await supabase.storage
+                  .from("avatars")
+                  .getPublicUrl(newData.profile_pic_url.replace('avatars/', ''));
+                publicUrl = storageData?.publicUrl || '';
+              } catch (storageError) {
+                console.error("Error getting public URL:", storageError);
+              }
+            }
 
-          setProfileData(newProfileData);
-          dispatch(updateUserInfo({
-            bio: newData.bio || "",
-            profileTitle: newData.fullname || "",
-            profilePic: publicUrl,
-            username: newData.username || ""
-          }));
+            const newProfileData: ProfileDataProps = {
+              bio: (newData as { bio?: string })?.bio || "",
+              profileTitle: (newData as { fullname?: string })?.fullname || "",
+              avatar: (newData as { profile_pic_url?: string })?.profile_pic_url || "",
+              username: (newData as { username?: string })?.username || "",
+              avatarUrl: publicUrl,
+              userID: userID
+            };
+
+            setProfileData(newProfileData);
+            dispatch(updateUserInfo({
+              bio: newProfileData.bio,
+              profileTitle: newProfileData.profileTitle,
+              profilePic: publicUrl,
+              username: newProfileData.username
+            }));
+
+            if (newData && 'template' in newData && typeof newData.template === 'string') {
+              setSelectedTemplate(newData.template);
+            }
+          } catch (error) {
+            console.error("Error processing real-time update:", error);
+          }
         }
       )
       .subscribe();
