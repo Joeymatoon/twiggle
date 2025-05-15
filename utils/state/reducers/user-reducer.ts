@@ -1,29 +1,73 @@
-// reducer/user-reducer.ts
-import { HeaderCardProps } from "+/application/links/links-card";
+import { HeaderCardProps } from "@/components/application/links/links-card";
 import { Reducer } from "redux";
 import { SocialLink } from "@/types/social-link";
 
-// Define the interface for the user state
 export interface UserState {
   username: string;
   profilePic: string;
   bio: string;
   profileTitle: string;
-  header: HeaderCardProps[]; // Assuming links are represented as an array of header card
-  socialLinks: SocialLink[];
+  header: HeaderCardProps[];
+  socialLinks: HeaderCardProps[];
 }
 
 // Define action types
 export enum UserActionTypes {
-  UPDATE_USER_INFO = "user/updateUserInfo",
-  ADD_USER_HEADER = "user/addUserHeader",
-  ADD_USER_LINK = "user/addUserLink",
+  UPDATE_USER_INFO = "UPDATE_USER_INFO",
+  UPDATE_SOCIAL_LINKS = "UPDATE_SOCIAL_LINKS",
+  ADD_USER_HEADER = "ADD_USER_HEADER",
+  ADD_USER_LINK = "ADD_USER_LINK"
 }
 
-// Define action interfaces
-interface UpdateUserInfoAction {
+// Define the initial state
+const initialState: UserState = {
+  username: "",
+  profilePic: "",
+  bio: "",
+  profileTitle: "",
+  header: [],
+  socialLinks: []
+};
+
+// Define the user reducer
+const userReducer: Reducer<UserState, any> = (state = initialState, action) => {
+  switch (action.type) {
+    case UserActionTypes.UPDATE_USER_INFO:
+      return {
+        ...state,
+        ...action.payload
+      };
+    case UserActionTypes.UPDATE_SOCIAL_LINKS:
+      return {
+        ...state,
+        socialLinks: action.payload
+      };
+    case UserActionTypes.ADD_USER_HEADER:
+      return {
+        ...state,
+        header: action.payload
+      };
+    case UserActionTypes.ADD_USER_LINK:
+      return {
+        ...state,
+        header: action.payload
+      };
+    default:
+      return state;
+  }
+};
+
+export default userReducer;
+
+// Action interfaces
+export interface UpdateUserInfoAction {
   type: UserActionTypes.UPDATE_USER_INFO;
-  payload: Partial<UserState>; // Partial type to allow updating only specific fields
+  payload: Partial<UserState>;
+}
+
+export interface UpdateSocialLinksAction {
+  type: UserActionTypes.UPDATE_SOCIAL_LINKS;
+  payload: SocialLink[];
 }
 
 export interface AddUserHeaderAction {
@@ -36,49 +80,8 @@ export interface AddUserLinkAction {
   payload: HeaderCardProps[];
 }
 
-// Define a union type for all possible actions
-export type UserAction = UpdateUserInfoAction | AddUserHeaderAction | AddUserLinkAction;
-
-// Define the initial state for the user reducer
-const initialState: UserState = {
-  username: "",
-  profilePic: "",
-  bio: "",
-  profileTitle: "",
-  header: [],
-  socialLinks: [],
-};
-
-// Define the user reducer function
-const userReducer: Reducer<UserState, UserAction> = (
-  state = initialState,
-  action
-) => {
-  switch (action.type) {
-    case UserActionTypes.UPDATE_USER_INFO:
-      return {
-        ...state,
-        ...action.payload, // Update only the specified fields
-      };
-    case UserActionTypes.ADD_USER_HEADER:
-      return {
-        ...state,
-        header: action.payload,
-      };
-    case UserActionTypes.ADD_USER_LINK:
-      return {
-        ...state,
-        socialLinks: action.payload,
-      };
-    default:
-      return state;
-  }
-};
-
-export default userReducer;
-
-// Define UnknownAction
-interface UnknownAction {
-  type: string;
-  [key: string]: any; // allow any other properties
-}
+export type UserAction =
+  | UpdateUserInfoAction
+  | UpdateSocialLinksAction
+  | AddUserHeaderAction
+  | AddUserLinkAction;
