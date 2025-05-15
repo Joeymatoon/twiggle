@@ -1,4 +1,4 @@
-import { HeaderCardProps } from "../links/links-card";
+import { HeaderCardProps } from "@/components/application/links/links-card";
 import { AddUserHeaderAction, AddUserLinkAction, UserActionTypes, UserState } from "@/utils/state/reducers/user-reducer";
 import { createAction } from "@reduxjs/toolkit";
 import { SocialLink } from "@/types/social-link";
