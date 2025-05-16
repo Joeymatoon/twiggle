@@ -37,7 +37,7 @@ export const Navbar = () => {
       >
         <NavbarItem className="hidden sm:flex gap-2">
           <NextLink href="/login">
-            <Button radius="sm" size="lg">
+            <Button radius="sm" size="lg" variant={theme === "dark" ? "flat" : "solid"}>
               Log in
             </Button>
           </NextLink>
@@ -56,7 +56,7 @@ export const Navbar = () => {
 
       <NavbarContent className="sm:hidden basis-1 gap-2" justify="end">
         <NextLink href="/login" target="_blank">
-          <Button radius="sm" size="lg">
+          <Button radius="sm" size="lg" variant={theme === "dark" ? "flat" : "solid"}>
             Log in
           </Button>
         </NextLink>
